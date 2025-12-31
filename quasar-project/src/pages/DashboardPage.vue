@@ -1,0 +1,237 @@
+<template>
+  <q-page class="q-pa-lg">
+    <!-- Welcome Header -->
+    <div class="row items-center q-mb-xl">
+       <div class="col-12 col-md-8">
+          <h4 class="text-h4 text-white text-weight-bold q-my-none">
+             Welcome Back, <span class="text-gradient">{{ userName }}</span>! 👋
+          </h4>
+          <p class="text-grey-5 q-mt-sm text-subtitle1">You have <span class="text-white text-weight-bold">2 sessions</span> coming up today.</p>
+       </div>
+       <div class="col-12 col-md-4 text-right gt-sm">
+          <q-btn unelevated rounded color="white" text-color="dark" label="View Schedule" icon="calendar_today" class="q-px-lg q-py-sm text-weight-bold" />
+       </div>
+    </div>
+
+    <!-- Stats Modules -->
+    <div class="row q-col-gutter-lg q-mb-xl">
+       <div class="col-12 col-md-4">
+          <q-card class="stat-card bg-gradient-1 text-white">
+            <q-card-section>
+              <div class="row items-center justify-between">
+                 <div class="text-h6 text-weight-bold">Attendance</div>
+                 <q-icon name="check_circle" size="2em" class="opacity-50" />
+              </div>
+              <div class="text-h2 text-weight-bolder q-mt-md">{{ attendance }}</div>
+              <div class="text-caption opacity-70">Current Term</div>
+            </q-card-section>
+          </q-card>
+       </div>
+       
+       <div class="col-12 col-md-4">
+          <q-card class="stat-card bg-gradient-2 text-white">
+             <q-card-section>
+               <div class="row items-center justify-between">
+                 <div class="text-h6 text-weight-bold">Assignments</div>
+                 <q-icon name="assignment_turned_in" size="2em" class="opacity-50" />
+              </div>
+              <div class="text-h2 text-weight-bolder q-mt-md">{{ assignmentCount }}</div>
+              <div class="text-caption opacity-70">Pending Review</div>
+             </q-card-section>
+          </q-card>
+       </div>
+
+       <div class="col-12 col-md-4">
+          <q-card class="stat-card bg-gradient-3 text-white">
+             <q-card-section>
+               <div class="row items-center justify-between">
+                 <div class="text-h6 text-weight-bold">Next Payment</div>
+                 <q-icon name="account_balance_wallet" size="2em" class="opacity-50" />
+              </div>
+              <div class="text-h2 text-weight-bolder q-mt-md">${{ paymentDue }}</div>
+              <div class="text-caption opacity-70">Total Due</div>
+             </q-card-section>
+          </q-card>
+       </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="row q-col-gutter-xl">
+       <!-- My Courses -->
+       <div class="col-12 col-md-8">
+          <div class="row items-center justify-between q-mb-lg">
+             <h5 class="text-h5 text-white text-weight-bold q-my-none">My Courses</h5>
+             <q-btn flat dense no-caps label="View All" color="primary" />
+          </div>
+          
+          <div v-if="courses.length > 0" class="row q-col-gutter-md">
+             <div v-for="(course, index) in courses" :key="index" class="col-12 col-sm-6">
+                <q-card class="course-card bg-dark-card text-white">
+                   <q-img src="https://cdn.quasar.dev/img/parallax2.jpg" height="150px">
+                      <div class="absolute-bottom text-subtitle2 text-weight-bold bg-transparent">
+                         {{ course.name }}
+                      </div>
+                   </q-img>
+                   <q-card-section>
+                      <q-linear-progress :value="course.progress" color="accent" class="q-mt-sm rounded-borders" />
+                      <div class="row justify-between q-mt-sm text-caption text-grey-6">
+                         <span>{{ course.progress * 100 }}% Complete</span>
+                      </div>
+                   </q-card-section>
+                </q-card>
+             </div>
+          </div>
+          <div v-else class="text-grey-5 q-pa-md text-center border-dashed rounded-borders">
+             No courses enrolled yet.
+          </div>
+          
+          <!-- Activity Graph Placeholder -->
+          <div class="q-mt-xl">
+              <h5 class="text-h5 text-white text-weight-bold q-mb-lg">Learning Activity</h5>
+              <q-card class="bg-dark-card text-white q-pa-md graph-card">
+                 <!-- Simple visualization for now -->
+                 <div class="row items-end justify-between q-gutter-x-sm" style="height: 150px">
+                    <div class="bg-primary-soft rounded-borders" style="flex: 1; height: 40%"></div>
+                    <div class="bg-primary-soft rounded-borders" style="flex: 1; height: 70%"></div>
+                    <div class="bg-accent rounded-borders" style="flex: 1; height: 50%"></div>
+                    <div class="bg-primary-soft rounded-borders" style="flex: 1; height: 90%"></div>
+                    <div class="bg-primary-soft rounded-borders" style="flex: 1; height: 60%"></div>
+                    <div class="bg-primary-soft rounded-borders" style="flex: 1; height: 80%"></div>
+                    <div class="bg-secondary rounded-borders" style="flex: 1; height: 30%"></div>
+                 </div>
+                 <div class="row justify-between q-mt-sm text-caption text-grey-6">
+                    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                 </div>
+              </q-card>
+          </div>
+       </div>
+
+       <!-- Sidebar: Schedule & Notifications -->
+       <div class="col-12 col-md-4">
+           <h5 class="text-h5 text-white text-weight-bold q-mb-lg q-mt-none">Up Next</h5>
+           <q-card class="bg-dark-card text-white q-mb-lg schedule-card">
+              <q-list v-if="schedule.length > 0" separator dark>
+                 <q-item v-for="(item, index) in schedule" :key="index">
+                    <q-item-section avatar>
+                       <div class="date-badge bg-primary-soft text-primary column flex-center">
+                          <span class="text-bold">{{ item.date }}</span>
+                          <span class="text-caption">{{ item.month }}</span>
+                       </div>
+                    </q-item-section>
+                    <q-item-section>
+                       <q-item-label class="text-weight-bold">{{ item.title }}</q-item-label>
+                       <q-item-label caption class="text-grey-5">{{ item.time }}</q-item-label>
+                    </q-item-section>
+                 </q-item>
+              </q-list>
+              <div v-else class="text-grey-5 q-pa-md text-center">
+                 No upcoming sessions.
+              </div>
+           </q-card>
+           
+           <!-- Quick Actions -->
+           <h5 class="text-h5 text-white text-weight-bold q-mb-md">Quick Actions</h5>
+           <div class="row q-col-gutter-sm">
+              <div class="col-6">
+                 <q-btn unelevated color="dark-lighter" class="full-width action-btn" no-caps>
+                    <div class="column items-center q-py-sm">
+                       <q-icon name="upload_file" color="accent" size="24px" class="q-mb-xs" />
+                       <span class="text-caption text-grey-4">Upload Homework</span>
+                    </div>
+                 </q-btn>
+              </div>
+              <div class="col-6">
+                 <q-btn unelevated color="dark-lighter" class="full-width action-btn" no-caps>
+                    <div class="column items-center q-py-sm">
+                       <q-icon name="credit_card" color="secondary" size="24px" class="q-mb-xs" />
+                       <span class="text-caption text-grey-4">Pay Fees</span>
+                    </div>
+                 </q-btn>
+              </div>
+           </div>
+       </div>
+    </div>
+  </q-page>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { supabase } from 'boot/supabase'
+
+const userName = ref('Student')
+const attendance = ref('0%')
+const assignmentCount = ref(0)
+const paymentDue = ref(0)
+const courses = ref([])
+const schedule = ref([])
+
+onMounted(async () => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user && user.user_metadata) {
+      userName.value = user.user_metadata.first_name || 'Student'
+  }
+})
+</script>
+
+<style scoped lang="scss">
+.text-gradient {
+  background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stat-card {
+  border-radius: 20px;
+  overflow: hidden;
+  transition: transform 0.3s;
+  border: none;
+  
+  &:hover {
+    transform: translateY(-5px);
+  }
+}
+
+.bg-gradient-1 { background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%); }
+.bg-gradient-2 { background: linear-gradient(135deg, #f72585 0%, #b5179e 100%); }
+.bg-gradient-3 { background: linear-gradient(135deg, #4cc9f0 0%, #4895ef 100%); }
+
+.bg-dark-card {
+  background: #121212;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.course-card {
+  overflow: hidden;
+  transition: all 0.3s;
+  
+  &:hover {
+    box-shadow: 0 10px 30px -10px rgba(67, 97, 238, 0.3);
+    border-color: $primary;
+  }
+}
+
+.date-badge {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+}
+
+.bg-primary-soft { background: rgba($primary, 0.15); color: $primary; }
+.bg-secondary-soft { background: rgba($secondary, 0.15); color: $secondary; }
+.bg-dark-lighter { background: #1e1e1e; }
+
+.action-btn {
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.2s;
+  
+  &:hover {
+    background: #252525;
+  }
+}
+
+.graph-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+}
+</style>

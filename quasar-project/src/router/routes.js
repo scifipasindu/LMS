@@ -2,7 +2,59 @@ const routes = [
   {
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
-    children: [{ path: '', component: () => import('pages/IndexPage.vue') }],
+    children: [
+      { path: '', component: () => import('pages/IndexPage.vue') },
+    ],
+  },
+
+  {
+    path: '/',
+    component: () => import('layouts/AuthLayout.vue'),
+    children: [
+      { path: 'login', component: () => import('pages/LoginPage.vue') },
+      { path: 'register', component: () => import('pages/RegisterPage.vue') }
+    ],
+  },
+
+  {
+    path: '/dashboard',
+    component: () => import('layouts/DashboardLayout.vue'),
+    children: [
+      { path: '', component: () => import('pages/DashboardPage.vue') },
+      { path: 'profile', component: () => import('pages/ProfilePage.vue') },
+
+      // General
+      { path: 'pages', component: () => import('pages/GenericPage.vue') },
+      { path: 'guides', component: () => import('pages/GuidesPage.vue') },
+
+      // Academic
+      { path: 'classes', component: () => import('pages/ClassesPage.vue') },
+      { path: 'subjects', component: () => import('pages/SubjectsPage.vue') },
+      { path: 'institutes', component: () => import('pages/InstitutesPage.vue') },
+
+      // Management
+      { path: 'reports', component: () => import('pages/ReportsPage.vue') },
+      { path: 'payments', component: () => import('pages/PaymentsPage.vue') },
+      { path: 'permissions', component: () => import('pages/PermissionsPage.vue') },
+
+      // Config
+      { path: 'settings', component: () => import('pages/SettingsPage.vue') },
+
+      // Old
+      { path: 'assignments', component: () => import('pages/AssignmentsPage.vue') }
+    ],
+    meta: { requiresAuth: true }
+  },
+
+  {
+    path: '/admin',
+    component: () => import('layouts/AdminLayout.vue'),
+    children: [
+      { path: '', component: () => import('pages/AdminDashboardPage.vue') },
+      { path: 'users', component: () => import('pages/AdminPage.vue') },
+      { path: 'settings', component: () => import('pages/AdminPage.vue') } // Placeholder
+    ],
+    meta: { requiresAuth: true, role: 'admin' }
   },
 
   // Always leave this as last one,
