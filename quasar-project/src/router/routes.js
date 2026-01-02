@@ -41,7 +41,8 @@ const routes = [
       { path: 'settings', component: () => import('pages/SettingsPage.vue'), meta: { role: 'admin' } },
 
       // Old
-      { path: 'assignments', component: () => import('pages/AssignmentsPage.vue') }
+      { path: 'dashboard/assignments', component: () => import('pages/AssignmentsPage.vue') },
+      { path: 'course/:id/learn', component: () => import('pages/CoursePlayerPage.vue') }
     ],
     meta: { requiresAuth: true }
   },
@@ -52,6 +53,7 @@ const routes = [
     children: [
       { path: '', component: () => import('pages/AdminDashboardPage.vue') },
       { path: 'users', component: () => import('pages/AdminPage.vue') },
+      { path: 'courses', component: () => import('pages/AdminCoursesPage.vue') },
       { path: 'settings', component: () => import('pages/AdminPage.vue') } // Placeholder
     ],
     meta: { requiresAuth: true, role: 'admin' }

@@ -116,6 +116,12 @@
             </q-item-section>
             <q-item-section>Institutes</q-item-section>
           </q-item>
+          <q-item v-if="isAdmin" clickable v-ripple to="/admin/courses" active-class="active-item">
+            <q-item-section avatar>
+              <q-icon name="video_library" />
+            </q-item-section>
+            <q-item-section>Manage Courses</q-item-section>
+          </q-item>
         </q-list>
 
         <!-- MANAGEMENT -->

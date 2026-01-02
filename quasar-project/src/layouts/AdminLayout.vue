@@ -60,6 +60,12 @@
             </q-item-section>
             <q-item-section>Institutes</q-item-section>
           </q-item>
+          <q-item clickable v-ripple to="/admin/courses" active-class="active-item">
+            <q-item-section avatar>
+              <q-icon name="video_library" />
+            </q-item-section>
+            <q-item-section>Courses & Lessons</q-item-section>
+          </q-item>
         </q-list>
 
         <!-- MANAGEMENT -->

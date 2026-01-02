@@ -264,6 +264,11 @@ const deleteUser = async (id) => {
         if (error) throw error
 
         $q.notify({ type: 'positive', message: 'User deleted successfully' })
+        
+        // Update Local State Immediately
+        users.value = users.value.filter(u => u.id !== id)
+        
+        // Then re-fetch to strict sync
         fetchUsers()
     } catch (err) {
         console.error(err)

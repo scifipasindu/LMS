@@ -11,6 +11,14 @@
              <div class="absolute-bottom text-subtitle2 bg-black-grad">
                {{ course.teacher }}
              </div>
+             <q-btn 
+               icon="play_circle" 
+               color="accent" 
+               round 
+               class="absolute-center shadow-10" 
+               size="lg"
+               :to="`/course/${course.id}/learn`"
+             />
           </q-img>
 
           <q-card-section>
@@ -28,42 +36,38 @@
           </q-card-section>
 
           <q-card-actions align="right" class="q-mt-auto">
-            <q-btn flat color="accent" label="View Class" />
+            <q-btn flat color="accent" label="View Class" :to="`/course/${course.id}/learn`" />
           </q-card-actions>
         </q-card>
       </div>
     </div>
-  </q-page>
-</template>
 
-<script setup>
-const courses = [
-  { 
-    id: 1, 
-    title: 'Advanced Mathematics', 
-    teacher: 'Mr. Silva',
-    schedule: 'Mon & Wed 10:00 AM',
-    progress: 0.75,
-    image: 'https://cdn.quasar.dev/img/parallax2.jpg'
-  },
-  { 
-    id: 2, 
-    title: 'Physics 101', 
-    teacher: 'Mrs. Perera',
-    schedule: 'Tue & Thu 2:00 PM',
-    progress: 0.45,
-    image: 'https://cdn.quasar.dev/img/parallax1.jpg'
-  },
-  { 
-    id: 3, 
-    title: 'Chemistry Lab', 
-    teacher: 'Dr. Fernando',
-    schedule: 'Friday 9:00 AM',
-    progress: 0.20,
-    image: 'https://cdn.quasar.dev/img/mountains.jpg'
-  }
-]
-</script>
+     <!-- Video Player Dialog Deleted -->
+   </q-page>
+ </template>
+ 
+ <script setup>
+ import { ref, onMounted } from 'vue'
+ import { supabase } from 'boot/supabase'
+ 
+ const courses = ref([])
+ const loading = ref(true)
+ 
+ onMounted(async () => {
+     const { data } = await supabase
+         .from('courses')
+         .select('*, lessons(*)')
+         .order('created_at', { ascending: false })
+     
+     courses.value = (data || []).map(c => ({
+         ...c,
+         image: c.image_url || 'https://cdn.quasar.dev/img/parallax2.jpg',
+         progress: 0.0, 
+         schedule: c.schedule || 'Flexible'
+     }))
+     loading.value = false
+ })
+ </script>
 
 <style scoped>
 .bg-dark-card {
