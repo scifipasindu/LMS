@@ -35,10 +35,10 @@ const routes = [
       // Management
       { path: 'reports', component: () => import('pages/ReportsPage.vue') },
       { path: 'payments', component: () => import('pages/PaymentsPage.vue') },
-      { path: 'permissions', component: () => import('pages/PermissionsPage.vue') },
+      { path: 'permissions', component: () => import('pages/PermissionsPage.vue'), meta: { role: 'admin' } },
 
       // Config
-      { path: 'settings', component: () => import('pages/SettingsPage.vue') },
+      { path: 'settings', component: () => import('pages/SettingsPage.vue'), meta: { role: 'admin' } },
 
       // Old
       { path: 'assignments', component: () => import('pages/AssignmentsPage.vue') }

@@ -135,6 +135,7 @@ const handleRegister = async () => {
         data: {
           first_name: firstName.value,
           last_name: lastName.value,
+          role: 'student', // Default role for email template variable {{ .Data.role }}
         },
       },
     })

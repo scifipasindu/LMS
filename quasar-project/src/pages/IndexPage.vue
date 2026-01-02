@@ -1,5 +1,5 @@
 <template>
-  <q-page class="bg-dark text-white">
+  <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
     
     <!-- Hero Section -->
     <section id="home" class="hero-section relative-position">
@@ -9,22 +9,23 @@
       
       <div class="container q-pa-md relative-position z-10 text-center">
         <div class="row items-center justify-center q-col-gutter-lg reverse-wrap-mobile">
-          <div class="col-12 col-md-7 text-left-md text-center">
+          <div class="col-12 col-md-7" :class="$q.screen.gt.sm ? 'text-left' : 'text-center'">
             <q-badge color="secondary" label="New Enrollment Open" class="q-py-xs q-px-sm q-mb-md" rounded />
             <h1 class="text-h2 text-weight-bolder leading-tight q-mb-md">
-              The Future of <br>
-              <span class="text-gradient">Tuition Management</span>
+              {{ config.home.slider.subtitle }} <br>
+              <span class="text-gradient">{{ config.home.slider.title }}</span>
             </h1>
-            <p class="text-h6 text-grey-4 q-mb-xl" style="max-width: 600px; margin-inline: auto 0;">
-              All-in-one platform for students, teachers, and parents. seamless learning, smart management.
+            <p :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'" class="text-h6 q-mb-xl" :style="$q.screen.gt.sm ? 'margin-right: auto' : 'margin-inline: auto'">
+              {{ config.home.slider.subText }}
             </p>
-            <div class="row q-gutter-md justify-center justify-md-start">
+            <div class="row q-gutter-md" :class="$q.screen.gt.sm ? 'justify-start' : 'justify-center'">
               <q-btn 
                 size="lg" 
                 rounded 
                 color="primary" 
                 class="q-px-xl shadow-10" 
-                label="Get Started" 
+                :label="config.home.slider.btnText"
+                :to="config.home.slider.btnUrl"
                 no-caps 
                 icon-right="arrow_forward"
               />
@@ -32,7 +33,7 @@
                 size="lg" 
                 rounded 
                 outline
-                color="white" 
+                :color="$q.dark.isActive ? 'white' : 'primary'" 
                 class="q-px-xl" 
                 label="Learn More" 
                 no-caps 
@@ -42,23 +43,11 @@
           
           <div class="col-12 col-md-5 flex flex-center">
              <div class="hero-card relative-position">
-                 <q-img 
-                    src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                    class="rounded-borders shadow-20"
-                    style="border-radius: 30px; transform: rotate(3deg); border: 5px solid rgba(255,255,255,0.1);"
-                 >
-                    <div class="absolute-bottom text-subtitle2 text-center bg-transparent">
-                      OnlineClass.edu.lk
-                    </div>
-                 </q-img>
-                
-                <!-- Floating Elements decoration -->
-                <div class="float-badge top-right bg-secondary">
-                  <q-icon name="check" color="white"/>
-                </div>
-                 <div class="float-badge bottom-left bg-warning">
-                  <q-icon name="bolt" color="white"/>
-                </div>
+                   <q-img 
+                     :src="config.home.slider.image"
+                     class="rounded-borders"
+                     style="border-radius: 20px; height: 500px; object-fit: cover;"
+                  />
              </div>
           </div>
         </div>
@@ -66,24 +55,16 @@
     </section>
 
     <!-- Stats Bar -->
-    <section class="q-py-xl bg-dark-light border-y-dim">
+    <!-- Dynamic Guides Section -->
+    <section v-if="config.home.guides && config.home.guides.length > 0 && config.home.guides[0].title" class="q-py-xl border-y-dim" :class="$q.dark.isActive ? 'bg-dark-light' : 'bg-grey-2'">
       <div class="container">
-        <div class="row justify-evenly text-center q-col-gutter-md">
-          <div class="col-6 col-md-3">
-             <div class="text-h3 text-weight-bold text-primary">500+</div>
-             <div class="text-subtitle1 text-grey-5">Active Students</div>
-          </div>
-          <div class="col-6 col-md-3">
-             <div class="text-h3 text-weight-bold text-secondary">98%</div>
-             <div class="text-subtitle1 text-grey-5">Pass Rate</div>
-          </div>
-           <div class="col-6 col-md-3">
-             <div class="text-h3 text-weight-bold text-accent">24/7</div>
-             <div class="text-subtitle1 text-grey-5">Support</div>
-          </div>
-           <div class="col-6 col-md-3">
-             <div class="text-h3 text-weight-bold text-positive">50+</div>
-             <div class="text-subtitle1 text-grey-5">Expert Teachers</div>
+        <div class="row q-col-gutter-lg justify-center">
+          <div v-for="(guide, index) in config.home.guides" :key="index" class="col-12 col-md-3">
+             <q-card class="h-full text-center q-pa-md transition-hover row flex-center column" :class="$q.dark.isActive ? 'bg-glass-card no-shadow' : 'bg-white shadow-2'">
+                <div class="text-h6 text-primary q-mb-sm">{{ guide.title }}</div>
+                <div class="text-caption q-mb-md" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">{{ guide.subText }}</div>
+                <q-btn v-if="guide.link" outline rounded size="sm" :color="$q.dark.isActive ? 'white' : 'primary'" label="View" :href="guide.link" />
+             </q-card>
           </div>
         </div>
       </div>
@@ -94,84 +75,84 @@
        <div class="container q-pa-md">
           <div class="text-center q-mb-xl">
              <h2 class="text-h3 text-weight-bold q-mb-sm">Powerful <span class="text-secondary">Features</span></h2>
-             <p class="text-grey-4 text-subtitle1">Everything you need to manage your institute efficiently.</p>
+             <p :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'" class="text-subtitle1">Everything you need to manage your institute efficiently.</p>
           </div>
           
           <div class="row q-col-gutter-lg">
              <!-- Feature 1 -->
              <div class="col-12 col-md-4">
-                <q-card class="bg-glass-card h-full text-white no-shadow transition-hover">
+                <q-card class="h-full transition-hover" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
                    <q-card-section class="q-pa-lg">
                       <div class="bg-primary-soft q-pa-md rounded-borders inline-block q-mb-md">
-                         <q-icon name="manage_accounts" size="32px" color="white"/>
+                         <q-icon name="manage_accounts" size="32px" :color="$q.dark.isActive ? 'white' : 'primary'"/>
                       </div>
                       <div class="text-h5 text-weight-bold q-mb-sm">Student Management</div>
-                      <p class="text-grey-4">Complete usage tracking, profile management, and attendance history in one place.</p>
+                      <p :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">Complete usage tracking, profile management, and attendance history in one place.</p>
                    </q-card-section>
                 </q-card>
              </div>
              
               <!-- Feature 2 -->
              <div class="col-12 col-md-4">
-                <q-card class="bg-glass-card h-full text-white no-shadow transition-hover">
+                <q-card class="h-full transition-hover" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
                    <q-card-section class="q-pa-lg">
                       <div class="bg-secondary-soft q-pa-md rounded-borders inline-block q-mb-md">
-                         <q-icon name="qr_code_scanner" size="32px" color="white"/>
+                         <q-icon name="qr_code_scanner" size="32px" :color="$q.dark.isActive ? 'white' : 'secondary'"/>
                       </div>
                       <div class="text-h5 text-weight-bold q-mb-sm">Smart Attendance</div>
-                      <p class="text-grey-4">QR based attendance system with instant SMS notification to parents.</p>
+                      <p :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">QR based attendance system with instant SMS notification to parents.</p>
                    </q-card-section>
                 </q-card>
              </div>
 
               <!-- Feature 3 -->
              <div class="col-12 col-md-4">
-                <q-card class="bg-glass-card h-full text-white no-shadow transition-hover">
+                <q-card class="h-full transition-hover" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
                    <q-card-section class="q-pa-lg">
                       <div class="bg-accent-soft q-pa-md rounded-borders inline-block q-mb-md">
-                         <q-icon name="payments" size="32px" color="white"/>
+                         <q-icon name="payments" size="32px" :color="$q.dark.isActive ? 'white' : 'accent'"/>
                       </div>
                       <div class="text-h5 text-weight-bold q-mb-sm">Fee Management</div>
-                      <p class="text-grey-4">Automated fee collection, pending alerts, and digital receipts.</p>
+                      <p :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">Automated fee collection, pending alerts, and digital receipts.</p>
                    </q-card-section>
                 </q-card>
              </div>
              
               <!-- Feature 4 -->
              <div class="col-12 col-md-4">
-                 <q-card class="bg-glass-card h-full text-white no-shadow transition-hover">
+                 <q-card class="h-full transition-hover" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
                    <q-card-section class="q-pa-lg">
                       <div class="bg-warning-soft q-pa-md rounded-borders inline-block q-mb-md">
-                         <q-icon name="quiz" size="32px" color="white"/>
+                         <q-icon name="quiz" size="32px" :color="$q.dark.isActive ? 'white' : 'warning'"/>
                       </div>
                       <div class="text-h5 text-weight-bold q-mb-sm">Exam & Results</div>
-                      <p class="text-grey-4">Online exams, automated grading, and detailed performance analysis.</p>
+                      <p :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">Online exams, automated grading, and detailed performance analysis.</p>
                    </q-card-section>
                 </q-card>
              </div>
              
               <!-- Feature 5 -->
              <div class="col-12 col-md-4">
-                <q-card class="bg-glass-card h-full text-white no-shadow transition-hover">
+                <q-card class="h-full transition-hover" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
                    <q-card-section class="q-pa-lg">
                       <div class="bg-info-soft q-pa-md rounded-borders inline-block q-mb-md">
-                         <q-icon name="dashboard" size="32px" color="white"/>
+                         <q-icon name="dashboard" size="32px" :color="$q.dark.isActive ? 'white' : 'info'"/>
                       </div>
                       <div class="text-h5 text-weight-bold q-mb-sm">Admin Dashboard</div>
-                      <p class="text-grey-4">Powerful insights, financial reports, and overall institute control.</p>
+                      <p :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">Powerful insights, financial reports, and overall institute control.</p>
                    </q-card-section>
                 </q-card>
              </div>
 
              <!-- Feature 6 -->
              <div class="col-12 col-md-4">
-                <q-card class="bg-glass-card h-full text-white no-shadow transition-hover">
+                <q-card class="h-full transition-hover" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
                    <q-card-section class="q-pa-lg">
                       <div class="bg-positive-soft q-pa-md rounded-borders inline-block q-mb-md">
-                         <q-icon name="live_tv" size="32px" color="white"/>
+                         <q-icon name="live_tv" size="32px" :color="$q.dark.isActive ? 'white' : 'positive'"/>
                       </div>
                       <div class="text-h5 text-weight-bold q-mb-sm">Online Classes</div>
-                      <p class="text-grey-4">Seamless integration for zoom/live classes and video recordings.</p>
+                      <p :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">Seamless integration for zoom/live classes and video recordings.</p>
                    </q-card-section>
                 </q-card>
              </div>
@@ -180,20 +161,20 @@
     </section>
 
     <!-- About Section -->
-    <section id="about" class="q-py-xl bg-dark-lighter">
+    <section id="about" class="q-py-xl" :class="$q.dark.isActive ? 'bg-dark-lighter' : 'bg-grey-1'">
       <div class="container q-pa-md">
          <div class="row items-center q-col-gutter-xl">
             <div class="col-12 col-md-6">
                <div class="relative-position">
                    <q-img 
-                    src="https://images.unsplash.com/photo-1544531586-fde5298cdd40?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                    class="rounded-borders shadow-20"
-                    style="height: 400px; border-radius: 20px;"
-                 >
-                    <div class="absolute-bottom text-center">
-                        Excellence in Education
-                    </div>
-                 </q-img>
+                     :src="config.home.about.image"
+                     class="rounded-borders shadow-20"
+                     style="height: 400px; border-radius: 20px;"
+                  >
+                     <div class="absolute-bottom text-center">
+                         {{ config.home.about.title }}
+                     </div>
+                  </q-img>
                   <div class="absolute-bottom-right q-mb-n-md q-mr-n-md bg-accent q-pa-lg rounded-borders shadow-10">
                      <div class="text-h4 text-weight-bold text-white">10+</div>
                      <div class="text-subtitle2 text-white">Years Experience</div>
@@ -202,29 +183,25 @@
             </div>
             <div class="col-12 col-md-6">
                <div class="text-primary text-subtitle1 text-weight-bold q-mb-sm">ABOUT US</div>
-               <h2 class="text-h3 text-weight-bold q-mb-md">We are transforming <br>How you learn</h2>
-               <p class="text-grey-4 text-body1 q-mb-lg">
-                  OnlineClass.edu.lk is designed to bridge the gap between technology and education. 
-                  We provide a seamless ecosystem for tuition providers to manage their classes, payments, and students 
-                  effortlessly while providing a top-tier learning experience for students.
-               </p>
+               <h2 class="text-h3 text-weight-bold q-mb-md" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ config.home.about.title }}</h2>
+               <div :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'" class="text-body1 q-mb-lg" v-html="config.home.about.description"></div>
                
                <q-list class="q-mb-lg">
                   <q-item>
                      <q-item-section avatar><q-icon name="check_circle" color="secondary" /></q-item-section>
-                     <q-item-section class="text-grey-4">Automated Workflows</q-item-section>
+                     <q-item-section :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'">Automated Workflows</q-item-section>
                   </q-item>
                    <q-item>
                      <q-item-section avatar><q-icon name="check_circle" color="secondary" /></q-item-section>
-                     <q-item-section class="text-grey-4">Secure Data Management</q-item-section>
+                     <q-item-section :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'">Secure Data Management</q-item-section>
                   </q-item>
                    <q-item>
                      <q-item-section avatar><q-icon name="check_circle" color="secondary" /></q-item-section>
-                     <q-item-section class="text-grey-4">Easy Mobile Access</q-item-section>
+                     <q-item-section :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'">Easy Mobile Access</q-item-section>
                   </q-item>
                </q-list>
                
-               <q-btn color="white" text-color="dark" label="Read More" rounded class="q-px-xl" no-caps/>
+               <q-btn v-if="config.home.about.btnText" :to="config.home.about.btnUrl" :color="$q.dark.isActive ? 'white' : 'primary'" :text-color="$q.dark.isActive ? 'dark' : 'white'" :label="config.home.about.btnText" rounded class="q-px-xl" no-caps/>
             </div>
          </div>
       </div>
@@ -254,7 +231,7 @@
                    </div>
                 </div>
                 
-                <div class="col-12 col-md-6 bg-white q-pa-xl text-dark">
+                <div class="col-12 col-md-6 q-pa-xl" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
                    <h4 class="text-h5 text-weight-bold q-mb-lg">Send Message</h4>
                    <q-form class="q-gutter-md">
                       <q-input outlined label="Your Name" v-model="name" />
@@ -273,11 +250,49 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
+import { supabase } from 'boot/supabase'
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
 
 const name = ref('')
 const email = ref('')
 const message = ref('')
+
+const config = reactive({
+  home: {
+    slider: { 
+       image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80', 
+       subtitle: 'The Future of', 
+       title: 'Tuition Management', 
+       subText: 'All-in-one platform for students, teachers, and parents. seamless learning, smart management.',
+       btnText: 'Get Started',
+       btnUrl: '/login' 
+    },
+    guides: [],
+    about: { 
+       title: 'About Us', 
+       image: 'https://images.unsplash.com/photo-1544531586-fde5298cdd40?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80', 
+       description: 'OnlineClass.edu.lk is designed to bridge the gap between technology and education.', 
+       btnText: 'Read More', 
+       btnUrl: '#' 
+    },
+    contact: { phone1: '', phone2: '', whatsapp: '', telegram: '', email: '', website: '' }
+  }
+})
+
+onMounted(async () => {
+  const { data } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'config')
+    .single()
+    
+  if (data?.value?.home) {
+      Object.assign(config.home, data.value.home)
+  }
+})
 </script>
 
 <style lang="scss">
@@ -345,7 +360,7 @@ const message = ref('')
 
 .hero-card {
    width: 100%;
-   max-width: 400px;
+   max-width: 500px;
 }
 
 .animate-float {

@@ -6,31 +6,34 @@
           <q-card class="bg-dark-card text-white text-center q-pa-lg profile-card">
               <div class="relative-position inline-block q-mb-md">
                  <q-avatar size="120px" class="shadow-10">
-                    <img src="https://cdn.quasar.dev/img/boy-avatar.png">
+                    <img :src="avatarUrl || 'https://cdn.quasar.dev/img/boy-avatar.png'" style="object-fit: cover;">
                  </q-avatar>
-                 <q-btn round color="primary" icon="edit" size="sm" class="absolute-bottom-right" style="bottom: 5px; right: 5px;" />
+                 <q-btn 
+                    round 
+                    color="primary" 
+                    icon="edit" 
+                    size="sm" 
+                    class="absolute-bottom-right" 
+                    style="bottom: 5px; right: 5px;" 
+                    @click="$refs.fileInput.pickFiles()"
+                 />
+                 <q-file 
+                    v-model="avatarFile" 
+                    ref="fileInput" 
+                    style="display: none" 
+                    accept="image/*"
+                    @update:model-value="handleAvatarUpload"
+                 />
               </div>
               
-              <h5 class="text-h5 text-weight-bold q-my-sm">{{ firstName }} {{ lastName }}</h5>
-              <div class="text-subtitle2 text-grey-5 q-mb-lg">{{ email }}</div>
-              
-              <q-chip color="accent" text-color="white" icon="star">Pro Student</q-chip>
+              <h5 class="text-h5 text-weight-bold q-my-sm">{{ profile.full_name || 'User' }}</h5>
+              <div class="text-subtitle2 text-grey-5 q-mb-sm">{{ userEmail }}</div>
+              <div class="text-caption text-primary text-uppercase text-weight-bold">{{ profile.role }}</div>
               
               <q-separator dark class="q-my-md" />
               
-              <div class="row justify-center q-gutter-x-lg">
-                 <div class="column">
-                    <span class="text-h6 text-weight-bold">{{ courseCount }}</span>
-                    <span class="text-caption text-grey-6">Courses</span>
-                 </div>
-                 <div class="column">
-                    <span class="text-h6 text-weight-bold">{{ attendanceRate }}%</span>
-                    <span class="text-caption text-grey-6">Attendance</span>
-                 </div>
-                 <div class="column">
-                    <span class="text-h6 text-weight-bold">{{ gpa }}</span>
-                    <span class="text-caption text-grey-6">GPA</span>
-                 </div>
+              <div v-if="profile.bio" class="text-body2 text-grey-4 q-mb-md">
+                  {{ profile.bio }}
               </div>
           </q-card>
        </div>
@@ -38,52 +41,54 @@
        <!-- Right Column: Edit Details -->
        <div class="col-12 col-md-8">
           <q-card class="bg-dark-card text-white q-pa-lg">
-              <h5 class="text-h5 text-weight-bold q-mt-none q-mb-lg">Account Settings</h5>
+              <h5 class="text-h5 text-weight-bold q-mt-none q-mb-lg">Profile Details</h5>
               
               <q-form @submit="updateProfile" class="q-gutter-md">
+                 <q-input 
+                   filled dark 
+                   v-model="profile.full_name" 
+                   label="Full Name" 
+                   class="input-glass"
+                 />
+
+                 <q-input 
+                   filled dark 
+                   v-model="profile.bio" 
+                   label="Bio / About Me" 
+                   type="textarea"
+                   rows="3"
+                   class="input-glass"
+                 />
+
                  <div class="row q-col-gutter-md">
                     <div class="col-12 col-md-6">
                         <q-input 
-                          filled dark 
-                          v-model="firstName" 
-                          label="First Name" 
-                          class="input-glass"
-                        />
+                           filled dark 
+                           v-model="userEmail" 
+                           label="Email Address" 
+                           class="input-glass"
+                           readonly
+                           hint="Cannot change email"
+                        >
+                           <template v-slot:append>
+                              <q-icon name="lock" color="grey-6" />
+                           </template>
+                        </q-input>
                     </div>
                     <div class="col-12 col-md-6">
                         <q-input 
-                          filled dark 
-                          v-model="lastName" 
-                          label="Last Name" 
-                          class="input-glass"
+                           filled dark 
+                           v-model="profile.phone" 
+                           label="Phone Number" 
+                           class="input-glass"
                         />
                     </div>
                  </div>
 
-                 <q-input 
-                    filled dark 
-                    v-model="email" 
-                    label="Email Address" 
-                    class="input-glass"
-                    readonly
-                    hint="Contact support to change email"
-                 >
-                    <template v-slot:append>
-                       <q-icon name="lock" color="grey-6" />
-                    </template>
-                 </q-input>
-                 
-                 <q-input 
-                    filled dark 
-                    v-model="phone" 
-                    label="Phone Number" 
-                    class="input-glass"
-                 />
-
                   <q-separator dark class="q-my-lg" />
                   
-                  <h6 class="text-h6 text-weight-bold q-my-none">Change Password</h6>
-                  <p class="text-grey-5 text-caption q-mb-md">Leave blank if you don't want to change it</p>
+                  <h6 class="text-h6 text-weight-bold q-my-none">Security</h6>
+                  <p class="text-grey-5 text-caption q-mb-md">Update your password (optional)</p>
 
                  <div class="row q-col-gutter-md">
                     <div class="col-12 col-md-6">
@@ -107,13 +112,12 @@
                  </div>
 
                  <div class="row justify-end q-mt-xl">
-                    <q-btn flat color="grey-5" label="Cancel" class="q-mr-sm" />
                     <q-btn 
                       unelevated 
                       rounded 
                       color="primary" 
                       label="Save Changes" 
-                      class="q-px-xl"
+                      class="q-px-xl shadow-4"
                       type="submit"
                       :loading="loading"
                     />
@@ -126,21 +130,28 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
 
 const $q = useQuasar()
 const loading = ref(false)
-const firstName = ref('')
-const lastName = ref('')
-const email = ref('')
-const phone = ref('')
+const userEmail = ref('')
+const avatarFile = ref(null)
+
+const profile = ref({
+    id: '',
+    full_name: '',
+    avatar_url: '',
+    role: '',
+    phone: '',
+    bio: ''
+})
+
 const newPassword = ref('')
 const confirmPassword = ref('')
-const courseCount = ref(0)
-const attendanceRate = ref(0)
-const gpa = ref(0.0)
+
+const avatarUrl = computed(() => profile.value.avatar_url)
 
 onMounted(async () => {
     getProfile()
@@ -148,60 +159,92 @@ onMounted(async () => {
 
 const getProfile = async () => {
    const { data: { user } } = await supabase.auth.getUser()
-   if (user) {
-       email.value = user.email
-       if (user.user_metadata) {
-           firstName.value = user.user_metadata.first_name || ''
-           lastName.value = user.user_metadata.last_name || ''
-           phone.value = user.user_metadata.phone || ''
-       }
+   if (!user) return
+
+   userEmail.value = user.email
+   
+   // Fetch from profiles table
+   const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+
+   if (data) {
+       profile.value = data
    }
+}
+
+const handleAvatarUpload = async (file) => {
+    if (!file) return
+    
+    try {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${profile.value.id}.${fileExt}`
+        const filePath = `${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, file, { upsert: true })
+
+        if (uploadError) throw uploadError
+
+        // Get Public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(filePath)
+            
+        // Update local state immediately
+        profile.value.avatar_url = publicUrl
+        
+        // Save to DB
+        await supabase
+            .from('profiles')
+            .update({ avatar_url: publicUrl })
+            .eq('id', profile.value.id)
+
+        $q.notify({ type: 'positive', message: 'Avatar updated!' })
+    } catch (error) {
+        console.error(error)
+        $q.notify({ type: 'negative', message: 'Failed to upload avatar' })
+    }
 }
 
 const updateProfile = async () => {
     if (newPassword.value && newPassword.value !== confirmPassword.value) {
-        $q.notify({
-            type: 'negative',
-            message: 'Passwords do not match',
-            position: 'top'
-        })
+        $q.notify({ type: 'negative', message: 'Passwords do not match' })
         return
     }
 
     loading.value = true
     try {
-        const updates = {
-            data: { 
-                first_name: firstName.value,
-                last_name: lastName.value,
-                phone: phone.value
-            }
-        }
+        // 1. Update Profile Data
+        const { error } = await supabase
+            .from('profiles')
+            .update({
+                full_name: profile.value.full_name,
+                phone: profile.value.phone,
+                bio: profile.value.bio
+            })
+            .eq('id', profile.value.id)
 
-        if (newPassword.value) {
-            updates.password = newPassword.value
-        }
-
-        const { error } = await supabase.auth.updateUser(updates)
-        
         if (error) throw error
+
+        // 2. Update Password if provided
+        if (newPassword.value) {
+            const { error: pwError } = await supabase.auth.updateUser({
+                password: newPassword.value
+            })
+            if (pwError) throw pwError
+        }
         
-        $q.notify({
-            type: 'positive',
-            message: 'Profile updated successfully!',
-            position: 'top'
-        })
+        $q.notify({ type: 'positive', message: 'Profile updated successfully!' })
         
-        // Clear password fields on success
         newPassword.value = ''
         confirmPassword.value = ''
-        
-    } catch {
-        $q.notify({
-            type: 'negative',
-            message: 'Error updating profile',
-            position: 'top'
-        })
+    } catch (err) {
+        console.error(err)
+        $q.notify({ type: 'negative', message: 'Error updating profile' })
     } finally {
         loading.value = false
     }

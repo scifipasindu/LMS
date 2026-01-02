@@ -1,6 +1,6 @@
 <template>
-  <q-layout view="lHh Lpr lFf" class="bg-dark-page">
-    <q-header class="bg-dark-glass backdrop-blur text-white q-py-xs" style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark-page' : 'bg-grey-1'">
+    <q-header :class="$q.dark.isActive ? 'bg-dark-glass text-white' : 'bg-white text-dark'" class="backdrop-blur q-py-xs" style="border-bottom: 1px solid rgba(255,255,255,0.05);">
        <q-toolbar>
          <q-toolbar-title class="text-weight-bold">
             <span class="text-accent">Admin</span>Console
@@ -9,9 +9,10 @@
        </q-toolbar>
     </q-header>
 
-    <q-drawer show-if-above v-model="leftDrawerOpen" side="left" class="bg-dark-sidebar" :width="260">
+    <q-drawer show-if-above v-model="leftDrawerOpen" side="left" :class="$q.dark.isActive ? 'bg-dark-sidebar' : 'bg-white'" :width="260">
        <div class="q-pa-lg flex flex-center q-mb-md">
-         <img src="~assets/logo_footer.png" style="height: 45px; opacity: 0.9;" />
+         <img v-if="currentLogo" :key="$q.dark.isActive" :src="currentLogo" style="height: 45px; object-fit: contain;" />
+         <div v-else class="text-h6 text-weight-bold"><span class="text-primary">Online</span><span :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Class</span></div>
        </div>
        
        <div class="q-px-md">
@@ -127,14 +128,49 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { supabase } from 'boot/supabase'
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
 const leftDrawerOpen = ref(true)
+
+const logoSettings = ref({ dark: '', light: '' })
+const currentLogo = ref('')
+
+// Watch for theme changes or settings load
+watch([() => $q.dark.isActive, logoSettings], () => {
+   const isDark = $q.dark.isActive
+   // In Admin Layout, if we enforce dark mode, we might want to force dark logo. 
+   // But let's support theming since we are fixing it.
+   currentLogo.value = isDark ? logoSettings.value.dark : (logoSettings.value.light || logoSettings.value.dark)
+}, { deep: true, immediate: true })
+
+onMounted(async () => {
+   await fetchSettings()
+})
+
+const fetchSettings = async () => {
+   const { data } = await supabase
+     .from('system_settings')
+     .select('value')
+     .eq('key', 'config')
+     .single()
+     
+   if (data?.value?.general) {
+      logoSettings.value.dark = data.value.general.logoUrl || ''
+      logoSettings.value.light = data.value.general.logoUrlLight || ''
+      // Trigger update
+      const isDark = $q.dark.isActive
+      currentLogo.value = isDark ? logoSettings.value.dark : (logoSettings.value.light || logoSettings.value.dark)
+   }
+}
 </script>
 
 <style scoped lang="scss">
-.bg-dark-glass { background: rgba(10, 9, 12, 0.8) !important; }
-.bg-dark-page { background: #000000 !important; }
-.bg-dark-sidebar { background: #050505 !important; border-right: 1px solid rgba(255,255,255,0.05); }
+.bg-dark-glass { background: rgba(10, 9, 12, 0.8); }
+.bg-dark-page { background: #000000; }
+.bg-dark-sidebar { background: #050505; border-right: 1px solid rgba(255,255,255,0.05); }
 .backdrop-blur { backdrop-filter: blur(12px); }
 .bg-white-5 { background: rgba(255,255,255,0.05); }
 </style>

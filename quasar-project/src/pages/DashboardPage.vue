@@ -4,7 +4,7 @@
     <div class="row items-center q-mb-xl">
        <div class="col-12 col-md-8">
           <h4 class="text-h4 text-white text-weight-bold q-my-none">
-             Welcome Back, <span class="text-gradient">{{ userName }}</span>! 👋
+             Welcome Back, <span class="text-gradient">{{ userRole }}</span>! 👋
           </h4>
           <p class="text-grey-5 q-mt-sm text-subtitle1">You have <span class="text-white text-weight-bold">2 sessions</span> coming up today.</p>
        </div>
@@ -158,7 +158,8 @@
 import { ref, onMounted } from 'vue'
 import { supabase } from 'boot/supabase'
 
-const userName = ref('Student')
+const userName = ref('User')
+const userRole = ref('')
 const attendance = ref('0%')
 const assignmentCount = ref(0)
 const paymentDue = ref(0)
@@ -167,8 +168,26 @@ const schedule = ref([])
 
 onMounted(async () => {
   const { data: { user } } = await supabase.auth.getUser()
-  if (user && user.user_metadata) {
-      userName.value = user.user_metadata.first_name || 'Student'
+  if (user) {
+      // Fetch Detailed Profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, full_name')
+        .eq('id', user.id)
+        .single()
+      
+      if (profile) {
+          // Map database role to display title
+          const roleMap = {
+              'admin': 'Admin',
+              'teacher': 'Instructor',
+              'student': 'Student'
+          }
+          userRole.value = roleMap[profile.role] || 'Member'
+          
+          // Use name if available, otherwise role
+          userName.value = profile.full_name || userRole.value
+      }
   }
 })
 </script>

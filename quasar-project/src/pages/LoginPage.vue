@@ -5,11 +5,26 @@
     <div class="absolute-bottom-left bg-accent" style="height: 400px; width: 400px; border-radius: 50%; opacity: 0.15; filter: blur(100px); transform: translate(-30%, 30%);"></div>
 
     <div class="login-card q-pa-xl relative-position z-10" style="width: 100%; max-width: 450px;">
-       <div class="text-center q-mb-xl">
-           <img src="~assets/logo_footer.png" style="height: 60px; margin-bottom: 20px;" alt="Logo" /> 
+       <div class="text-center q-mb-lg">
+           <img v-if="currentLogo" :src="currentLogo" style="height: 60px; margin-bottom: 20px; object-fit: contain;" alt="Logo" /> 
+           <div v-else class="text-h4 text-primary text-weight-bold q-mb-md">Online<span class="text-white">Class</span></div> 
            <h4 class="text-h4 text-weight-bold text-white q-mt-none q-mb-sm">Welcome Back</h4>
            <p class="text-grey-5">Sign in to continue your learning journey</p>
        </div>
+
+       <q-tabs
+          v-model="selectedRole"
+          class="text-grey-5 q-mb-lg"
+          active-color="primary"
+          indicator-color="primary"
+          align="justify"
+          dense
+          no-caps
+       >
+          <q-tab name="student" label="Student Login" icon="school" />
+          <q-tab name="staff" label="Staff Login" icon="badge" />
+          <q-tab name="admin" label="Admin Login" icon="admin_panel_settings" />
+       </q-tabs>
 
        <q-form @submit="handleLogin" class="q-gutter-md">
            <q-input 
@@ -66,7 +81,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
@@ -77,27 +92,81 @@ const email = ref('')
 const password = ref('')
 const rememberMe = ref(false)
 const loading = ref(false)
+const selectedRole = ref('student') // Default to Student
+
+const logoSettings = ref({ dark: '', light: '' })
+const currentLogo = ref('')
+
+// Watch for theme changes or settings load
+watch([() => $q.dark.isActive, logoSettings], () => {
+   currentLogo.value = logoSettings.value.dark || logoSettings.value.light
+}, { deep: true, immediate: true })
+
+onMounted(async () => {
+   await fetchSettings()
+})
+
+const fetchSettings = async () => {
+   const { data } = await supabase
+     .from('system_settings')
+     .select('value')
+     .eq('key', 'config')
+     .single()
+     
+   if (data?.value?.general) {
+      logoSettings.value.dark = data.value.general.logoUrl || ''
+      logoSettings.value.light = data.value.general.logoUrlLight || ''
+      currentLogo.value = logoSettings.value.dark || logoSettings.value.light
+   }
+}
 
 const handleLogin = async () => {
   loading.value = true
   try {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: email.value,
       password: password.value,
     })
 
     if (error) throw error
 
+    // Fetch Profile to verify Role
+    const { data: profile } = await supabase
+       .from('profiles')
+       .select('role')
+       .eq('id', data.user.id)
+       .single()
+    
+    // Authorization Check
+    const role = profile?.role?.toLowerCase() || 'student'
+    const targetRole = selectedRole.value.toLowerCase()
+
+    if (role !== targetRole) {
+        // Validation Failed: Role mismatch
+        await supabase.auth.signOut() 
+        throw new Error(`Access Denied: You are not authorized as a ${selectedRole.value}. Your role is: ${profile?.role || 'Unknown'}`)
+    }
+
     $q.notify({
       type: 'positive',
-      message: 'Successfully logged in!',
+      message: `Welcome back, ${profile?.role}!`,
       position: 'top'
     })
     
-    // Redirect to dashboard or home
-    router.push('/dashboard')
+    // Redirect based on verified role
+    if (role === 'admin') {
+        router.push('/admin')
+    } else {
+        router.push('/dashboard')
+    }
     
   } catch (err) {
+    if (err.message.includes('Access Denied')) {
+        // Keep loading false, show explicit error
+    } else {
+        // Standard login error
+    }
+    
     $q.notify({
       type: 'negative',
       message: err.message || 'Login failed',

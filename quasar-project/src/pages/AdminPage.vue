@@ -1,10 +1,15 @@
 <template>
   <q-page class="q-pa-lg text-white">
     <div class="row justify-between items-center q-mb-lg">
-      <h4 class="text-h4 text-weight-bold q-my-none">User Management</h4>
-      <!-- Add User removed as it requires Cloud Functions -->
+       <h4 class="text-h4 text-weight-bold q-my-none">User Management</h4>
+       <!-- Removed Add User Button - Users must Register themselves -->
     </div>
     
+    <div class="q-pa-md bg-dark-card q-mb-md text-grey-5" style="border-radius: 8px; border-left: 4px solid var(--q-primary)">
+        <q-icon name="info" size="sm" class="q-mr-sm"/>
+        To add a new Admin or Teacher, ask them to <strong>Register</strong> first. Then find them here and update their <strong>Role</strong>.
+    </div>
+
     <q-card class="bg-dark-card">
        <q-table
           :rows="users"
@@ -30,12 +35,17 @@
 
           <template v-slot:body-cell-actions="props">
              <q-td :props="props">
-                <q-btn flat round dense icon="edit" color="primary" @click="editUser(props.row)">
-                   <q-tooltip>Edit Profile</q-tooltip>
-                </q-btn>
-                <q-btn flat round dense icon="delete" color="negative" @click="deleteUser(props.row.id)">
-                   <q-tooltip>Delete Profile</q-tooltip>
-                </q-btn>
+                <!-- Actions: Hide for Main Admin UNLESS valid Main Admin is logged in -->
+                <div v-if="props.row.email !== MAIN_ADMIN_EMAIL || currentUserEmail === MAIN_ADMIN_EMAIL">
+                    <q-btn flat round dense icon="edit" color="primary" @click="editUser(props.row)">
+                       <q-tooltip>Edit Profile</q-tooltip>
+                    </q-btn>
+                    <!-- Delete NEVER allowed for Main Admin -->
+                    <q-btn v-if="props.row.email !== MAIN_ADMIN_EMAIL" flat round dense icon="delete" color="negative" @click="deleteUser(props.row.id)">
+                       <q-tooltip>Delete Profile</q-tooltip>
+                    </q-btn>
+                </div>
+                <div v-else class="text-grey-7 text-caption">Protected</div>
              </q-td>
           </template>
        </q-table>
@@ -45,25 +55,37 @@
     <q-dialog v-model="editDialog" persistent>
        <q-card class="bg-dark text-white" style="min-width: 400px">
           <q-card-section>
-             <div class="text-h6">Edit Profile</div>
+             <div class="text-h6">Edit Role</div>
           </q-card-section>
           
           <q-card-section class="q-pt-none q-gutter-y-md" v-if="selectedUser">
-             <q-input filled dark v-model="selectedUser.full_name" label="Full Name" />
+             <!-- Full Name: Editable ONLY for Main Admin (Self) -->
+             <q-input 
+               filled dark 
+               v-model="selectedUser.full_name" 
+               label="Full Name" 
+               :readonly="selectedUser.email !== MAIN_ADMIN_EMAIL" 
+               :disable="selectedUser.email !== MAIN_ADMIN_EMAIL"
+               :hint="selectedUser.email === MAIN_ADMIN_EMAIL ? 'You can edit your name' : 'User must update this themselves'" 
+             />
              
-             <!-- Password update requires Cloud Functions, removed. -->
+             <q-input filled dark v-model="selectedUser.email" label="Email" readonly disable />
 
+             <!-- Role: Disabled for Main Admin (Self) to prevent lockout -->
              <q-select 
                filled dark 
                v-model="selectedUser.role" 
                :options="roleOptions" 
                label="Role" 
+               :readonly="selectedUser.email === MAIN_ADMIN_EMAIL"
+               :disable="selectedUser.email === MAIN_ADMIN_EMAIL"
+               :hint="selectedUser.email === MAIN_ADMIN_EMAIL ? 'Cannot demote Main Admin' : ''"
              />
           </q-card-section>
           
           <q-card-actions align="right" class="text-primary">
              <q-btn flat label="Cancel" v-close-popup />
-             <q-btn flat label="Save Changes" @click="updateUser" :loading="processing" />
+             <q-btn flat label="Save Role" @click="updateUser" :loading="processing" />
           </q-card-actions>
        </q-card>
     </q-dialog>
@@ -72,7 +94,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
@@ -82,21 +104,40 @@ const route = useRoute()
 const users = ref([])
 const loading = ref(false)
 const processing = ref(false)
+const currentUserEmail = ref('')
+
+// CONSTANTS
+const MAIN_ADMIN_EMAIL = 'janiruhansaga2029@gmail.com'
 
 // Edit State
 const editDialog = ref(false)
 const selectedUser = ref(null)
 
-const roleOptions = ['student', 'teacher', 'admin']
+// Role Options computed based on permissions
+const roleOptions = computed(() => {
+    // Only Main Admin can assign Admin/Staff roles
+    if (currentUserEmail.value === MAIN_ADMIN_EMAIL) {
+        return ['student', 'teacher', 'admin', 'staff']
+    } else {
+        return ['student', 'teacher']
+    }
+})
 
 const columns = [
   { name: 'full_name', label: 'Name', align: 'left', field: 'full_name', sortable: true },
+  { name: 'email', label: 'Email', align: 'left', field: 'email', sortable: true },
   { name: 'role', label: 'Role', align: 'center', field: 'role', sortable: true },
   { name: 'updated_at', label: 'Last Active', align: 'right', field: row => new Date(row.updated_at).toLocaleDateString() },
   { name: 'actions', label: 'Actions', align: 'right' }
 ]
 
-onMounted(() => {
+onMounted(async () => {
+   // Get Current User Email
+   const { data: { user } } = await supabase.auth.getUser()
+   if (user) {
+       currentUserEmail.value = user.email
+   }
+   
    fetchUsers()
 })
 
@@ -104,7 +145,7 @@ const fetchUsers = async () => {
    loading.value = true
    const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, full_name, role, email, updated_at, created_at')
       .order('created_at', { ascending: false })
       
    if (error) {
@@ -122,15 +163,17 @@ const fetchUsers = async () => {
    loading.value = false
 }
 
-// Watch for route changes to re-fetch/re-filter if user clicks different sidebar link
+// Watch for route changes to re-fetch/re-filter
 watch(() => route.query.role, () => {
    fetchUsers()
 })
 
 const getRoleColor = (role) => {
-   if (role === 'admin') return 'negative'
-   if (role === 'teacher') return 'secondary'
-   return 'primary'
+   const r = role ? role.toLowerCase() : 'student'
+   if (r === 'admin') return 'negative'
+   if (r === 'teacher') return 'secondary'
+   if (r === 'staff') return 'purple'
+   return 'primary' 
 }
 
 const editUser = (user) => {
@@ -138,34 +181,46 @@ const editUser = (user) => {
    editDialog.value = true
 }
 
+// Validation before update
 const updateUser = async () => {
-   processing.value = true
-   try {
-       // Only update Profile table (Name, Role)
-       // Cannot update Password/Email without Backend Function
-       const { error } = await supabase
-          .from('profiles')
-          .update({ 
-              full_name: selectedUser.value.full_name,
-              role: selectedUser.value.role
-          })
-          .eq('id', selectedUser.value.id)
+    // Double check permission
+    if (['admin', 'staff'].includes(selectedUser.value.role) && currentUserEmail.value !== MAIN_ADMIN_EMAIL && selectedUser.value.email !== MAIN_ADMIN_EMAIL) {
+        $q.notify({ type: 'warning', message: 'Only Main Admin can assign Admin/Staff roles.' })
+        return
+    }
 
-       if (error) throw error
+    processing.value = true
+    try {
+        // Update Profile Table ONLY
+        const updates = { 
+            role: selectedUser.value.role 
+        }
 
-       $q.notify({ type: 'positive', message: 'User profile updated' })
-       editDialog.value = false
-       fetchUsers()
-   } catch (err) {
-       console.error(err)
-       $q.notify({ type: 'negative', message: 'Error updating user' })
-   } finally {
-       processing.value = false
-   }
+        // If Main Admin is editing themselves, include Full Name update
+        if (selectedUser.value.email === MAIN_ADMIN_EMAIL) {
+            updates.full_name = selectedUser.value.full_name
+        }
+
+        const { error } = await supabase
+           .from('profiles')
+           .update(updates)
+           .eq('id', selectedUser.value.id)
+
+        if (error) throw error
+
+        $q.notify({ type: 'positive', message: 'User role updated successfully' })
+        editDialog.value = false
+        fetchUsers()
+    } catch (err) {
+        console.error(err)
+        $q.notify({ type: 'negative', message: 'Error updating role' })
+    } finally {
+        processing.value = false
+    }
 }
 
 const deleteUser = async (id) => {
-    if (!confirm('Are you sure? This will remove the User Profile only (Login may still exist).')) return
+    if (!confirm('Are you sure? This will remove the User Profile from the list.')) return
     
     try {
         const { error } = await supabase

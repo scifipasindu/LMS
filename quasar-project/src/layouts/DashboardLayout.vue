@@ -1,8 +1,12 @@
 <template>
-  <q-layout view="lHh Lpr lFf" class="bg-dark-page">
+  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark-page' : 'bg-grey-1'">
     
     <!-- Modern Header -->
-    <q-header class="bg-dark-glass backdrop-blur text-white q-py-xs" style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+    <q-header 
+      :class="$q.dark.isActive ? 'bg-dark-glass backdrop-blur text-white' : 'bg-white backdrop-blur text-dark'" 
+      class="q-py-xs" 
+      :style="$q.dark.isActive ? 'border-bottom: 1px solid rgba(255,255,255,0.05);' : 'border-bottom: 1px solid rgba(0,0,0,0.05);'"
+    >
       <q-toolbar>
         <q-btn flat dense round icon="menu_open" aria-label="Menu" @click="toggleLeftDrawer" class="q-mr-md" color="accent" />
 
@@ -12,14 +16,20 @@
 
         <!-- Search Bar (Desktop) -->
         <div class="gt-xs q-mx-md" style="flex: 1; max-width: 400px;">
-           <q-input dense filled v-model="search" placeholder="Search courses, teachers..." class="search-input" dark>
+           <q-input dense filled v-model="search" placeholder="Search courses, teachers..." class="search-input" :dark="$q.dark.isActive">
               <template v-slot:prepend>
-                <q-icon name="search" color="grey-6" />
+                <q-icon name="search" :color="$q.dark.isActive ? 'grey-6' : 'grey-8'" />
               </template>
            </q-input>
         </div>
 
-        <q-btn flat round dense icon="notifications_none" class="q-mr-sm text-grey-4">
+        <q-btn flat dense no-caps icon="home" label="Home" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'" class="q-mr-sm gt-xs" type="a" href="/" target="_blank" />
+        
+        <q-btn flat round dense :icon="$q.dark.isActive ? 'light_mode' : 'dark_mode'" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'" class="q-mr-sm" @click="toggleTheme">
+           <q-tooltip>Toggle Theme</q-tooltip>
+        </q-btn>
+
+        <q-btn flat round dense icon="notifications_none" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'" class="q-mr-sm">
            <q-badge color="accent" floating rounded dot />
         </q-btn>
         
@@ -27,7 +37,7 @@
            <q-avatar size="32px">
               <img src="https://cdn.quasar.dev/img/boy-avatar.png">
            </q-avatar>
-           <q-menu auto-close dark class="bg-dark-glass backdrop-blur" style="border: 1px solid rgba(255,255,255,0.1)">
+           <q-menu auto-close :dark="$q.dark.isActive" :class="$q.dark.isActive ? 'bg-dark-glass backdrop-blur' : 'bg-white backdrop-blur'" :style="$q.dark.isActive ? 'border: 1px solid rgba(255,255,255,0.1)' : 'border: 1px solid rgba(0,0,0,0.1)'">
               <q-list style="min-width: 150px">
                 <q-item clickable>
                   <q-item-section>Profile</q-item-section>
@@ -35,7 +45,7 @@
                 <q-item clickable>
                   <q-item-section>Settings</q-item-section>
                 </q-item>
-                <q-separator dark />
+                <q-separator :dark="$q.dark.isActive" />
                 <q-item clickable class="text-negative" @click="handleLogout">
                   <q-item-section>Logout</q-item-section>
                 </q-item>
@@ -51,15 +61,17 @@
       v-model="leftDrawerOpen" 
       side="left" 
       
-      class="bg-dark-sidebar"
+      :class="$q.dark.isActive ? 'bg-dark-sidebar' : 'bg-white'"
+      style="border-right: 1px solid rgba(0,0,0,0.05);"
       :width="260"
       :breakpoint="700"
     >
       <div class="q-pa-lg flex flex-center q-mb-md">
-         <img src="~assets/logo_footer.png" style="height: 45px; opacity: 0.9;" />
+         <img v-if="currentLogo" :key="$q.dark.isActive" :src="currentLogo" style="height: 45px; object-fit: contain;" />
+         <div v-else class="text-h6 text-primary text-weight-bold">Online<span :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Class</span></div>
       </div>
       
-      <div class="q-px-md">
+      <div class="q-px-md" style="padding-bottom: 100px;">
         <!-- GENERAL -->
         <div class="text-caption text-grey-6 q-mb-sm q-ml-sm text-weight-bold text-uppercase">General</div>
         <q-list class="q-gutter-y-xs q-mb-md">
@@ -121,7 +133,7 @@
             </q-item-section>
             <q-item-section>Payments</q-item-section>
           </q-item>
-          <q-item clickable v-ripple to="/dashboard/permissions" active-class="active-item">
+          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/permissions" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="lock" />
             </q-item-section>
@@ -157,7 +169,7 @@
         <!-- CONFIG -->
         <div class="text-caption text-grey-6 q-mb-sm q-ml-sm text-weight-bold text-uppercase">Config</div>
         <q-list class="q-gutter-y-xs">
-          <q-item clickable v-ripple to="/dashboard/settings" active-class="active-item">
+          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/settings" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="settings" />
             </q-item-section>
@@ -173,7 +185,7 @@
                <img src="https://cdn.quasar.dev/img/boy-avatar.png">
             </q-avatar>
             <div class="column">
-               <div class="text-subtitle2 text-white leading-tight">Student</div>
+               <div class="text-subtitle2 text-white leading-tight">{{ userRole }}</div>
                <div class="text-caption text-accent" style="font-size: 10px;">PRO MEMBER</div>
             </div>
          </div>
@@ -187,7 +199,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue' // removed computed
 import { useRouter } from 'vue-router'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
@@ -197,10 +209,41 @@ const router = useRouter()
 const leftDrawerOpen = ref(false)
 const search = ref('')
 const isAdmin = ref(false)
+const userRole = ref('Student')
+
+const logoSettings = ref({ dark: '', light: '' })
+const currentLogo = ref('')
+
+// Watch for theme changes or settings load
+watch([() => $q.dark.isActive, logoSettings], () => {
+   const isDark = $q.dark.isActive
+   currentLogo.value = isDark ? logoSettings.value.dark : (logoSettings.value.light || logoSettings.value.dark)
+}, { deep: true, immediate: true })
+
+const toggleTheme = () => {
+   $q.dark.toggle() // This triggers the watch
+}
 
 onMounted(async () => {
    checkRole()
+   await fetchSettings() // await ensures settings load before we rely on them, triggering watch once loaded
 })
+
+const fetchSettings = async () => {
+   const { data } = await supabase
+     .from('system_settings')
+     .select('value')
+     .eq('key', 'config')
+     .single()
+     
+   if (data?.value?.general) {
+      logoSettings.value.dark = data.value.general.logoUrl || ''
+      logoSettings.value.light = data.value.general.logoUrlLight || ''
+      // Manually trigger immediate update after fetch
+      const isDark = $q.dark.isActive
+      currentLogo.value = isDark ? logoSettings.value.dark : (logoSettings.value.light || logoSettings.value.dark)
+   }
+}
 
 const checkRole = async () => {
    const { data: { user } } = await supabase.auth.getUser()
@@ -211,8 +254,17 @@ const checkRole = async () => {
          .eq('id', user.id)
          .single()
          
-       if (profile && profile.role === 'admin') {
-           isAdmin.value = true
+       if (profile) {
+           const roleMap = {
+              'admin': 'Admin',
+              'teacher': 'Instructor',
+              'student': 'Student'
+           }
+           userRole.value = roleMap[profile.role] || 'User'
+           
+           if (profile.role === 'admin') {
+               isAdmin.value = true
+           }
        }
    }
 }

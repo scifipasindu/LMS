@@ -1,9 +1,10 @@
 <template>
-  <q-layout view="lHh Lpr lFf" class="bg-dark text-white">
-    <q-header reveal class="bg-transparent text-white q-py-lg" style="backdrop-filter: blur(10px);">
+  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
+    <q-header reveal :class="$q.dark.isActive ? 'bg-transparent text-white' : 'bg-white text-dark'" class="q-py-lg" style="backdrop-filter: blur(10px);">
       <q-toolbar>
         <q-btn flat no-caps no-wrap style="margin-left: 100px;" to="/">
-           <img src="~assets/logo_footer.png" style="height: 60px; width: auto;" alt="OnlineClass.edu.lk" />
+           <img v-if="currentLogo" :key="$q.dark.isActive" :src="currentLogo" style="height: 60px; width: auto;" alt="OnlineClass" />
+           <div v-else class="text-h5 text-primary text-weight-bold">Online<span :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Class</span></div>
         </q-btn>
 
         <q-space />
@@ -18,6 +19,11 @@
           <q-btn v-else unelevated rounded color="primary" label="Dashboard" class="q-px-md" to="/dashboard" />
         </div>
 
+        <!-- Theme Toggle -->
+        <q-btn flat round dense :icon="$q.dark.isActive ? 'light_mode' : 'dark_mode'" class="q-mr-sm" @click="toggleTheme">
+           <q-tooltip>Toggle Theme</q-tooltip>
+        </q-btn>
+
         <!-- Mobile Menu Button -->
         <q-btn flat dense round icon="menu" class="lt-md" @click="toggleLeftDrawer" />
       </q-toolbar>
@@ -29,7 +35,7 @@
       overlay
       behavior="mobile"
       elevated
-      class="bg-dark text-white"
+      :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'"
     >
       <q-list class="q-mt-lg">
         <q-item clickable v-close-popup @click="scrollToSection('home')">
@@ -48,7 +54,7 @@
            <q-item-section avatar><q-icon name="phone" color="accent"/></q-item-section>
           <q-item-section>Contact</q-item-section>
         </q-item>
-        <q-separator dark class="q-my-md"/>
+        <q-separator :dark="$q.dark.isActive" class="q-my-md"/>
         <div class="flex justify-center">
            <q-btn v-if="!user" unelevated rounded color="accent" label="Student Login" class="full-width q-mx-md" to="/login" />
            <q-btn v-else unelevated rounded color="primary" label="Dashboard" class="full-width q-mx-md" to="/dashboard" />
@@ -59,14 +65,15 @@
     <q-page-container>
       <router-view />
       
-      <footer class="bg-dark text-white">
+      <footer :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'">
         <!-- Main Footer Content -->
         <div class="container q-py-xl">
-            <div class="row q-col-gutter-xl">
+            <div class="row" :class="$q.screen.lt.md ? 'q-col-gutter-md justify-center' : 'q-col-gutter-xl'">
               <!-- Left: Brand -->
-              <div class="col-12 col-md-3">
+              <div class="col-12 col-md-3" :class="$q.screen.lt.md ? 'text-center' : 'text-left'">
                   <div class="q-mb-md">
-                     <img src="~assets/logo_footer.png" style="max-width: 180px; height: auto;" alt="OnlineClass.edu.lk" />
+                   <img v-if="currentLogo" :key="$q.dark.isActive" :src="currentLogo" style="max-width: 180px; height: auto;" alt="OnlineClass" />
+                   <div v-else class="text-h4 text-primary text-weight-bold">Online<span class="text-white">Class</span></div>
                   </div>
                   <div class="text-grey-5 text-body2">
                      Empowering students with smart education management solutions in Sri Lanka.
@@ -77,7 +84,7 @@
               <div class="col-0 col-md-3"></div>
   
               <!-- Links Columns -->
-              <div class="col-12 col-md-6">
+              <div class="col-12 col-md-6" :class="$q.screen.lt.md ? 'text-center' : ''">
                  <div class="row q-col-gutter-lg">
                     <!-- Company -->
                     <div class="col-4">
@@ -138,21 +145,56 @@
 </style>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { supabase } from 'boot/supabase'
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
 const leftDrawerOpen = ref(false)
 const user = ref(null)
+
+const logoSettings = ref({ dark: '', light: '' })
+const currentLogo = ref('')
+
+// Watch for theme changes or settings load
+watch([() => $q.dark.isActive, logoSettings], () => {
+   const isDark = $q.dark.isActive
+   currentLogo.value = isDark ? logoSettings.value.dark : (logoSettings.value.light || logoSettings.value.dark)
+}, { deep: true, immediate: true })
+
+const toggleTheme = () => {
+   $q.dark.toggle()
+}
 
 onMounted(async () => {
   // Get initial user
   const { data } = await supabase.auth.getUser()
   user.value = data.user
+  
+  // Fetch settings
+  await fetchSettings()
 
   // Listen for changes
   supabase.auth.onAuthStateChange((event, session) => {
     user.value = session?.user || null
   })
 })
+
+const fetchSettings = async () => {
+   const { data } = await supabase
+     .from('system_settings')
+     .select('value')
+     .eq('key', 'config')
+     .single()
+     
+   if (data?.value?.general) {
+      logoSettings.value.dark = data.value.general.logoUrl || ''
+      logoSettings.value.light = data.value.general.logoUrlLight || ''
+      // Manually trigger immediate update after fetch
+      const isDark = $q.dark.isActive
+      currentLogo.value = isDark ? logoSettings.value.dark : (logoSettings.value.light || logoSettings.value.dark)
+   }
+}
 
 
 
