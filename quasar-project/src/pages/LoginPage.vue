@@ -45,7 +45,7 @@
              filled 
              v-model="password" 
              label="Password" 
-             type="password" 
+             :type="isPwd ? 'password' : 'text'"
              dark 
              color="accent"
              class="input-glass"
@@ -53,6 +53,14 @@
            >
               <template v-slot:prepend>
                 <q-icon name="lock" color="grey-5" />
+              </template>
+              <template v-slot:append>
+                <q-icon
+                  :name="isPwd ? 'visibility_off' : 'visibility'"
+                  class="cursor-pointer"
+                  color="grey-5"
+                  @click="isPwd = !isPwd"
+                />
               </template>
            </q-input>
 
@@ -90,6 +98,7 @@ const $q = useQuasar()
 const router = useRouter()
 const email = ref('')
 const password = ref('')
+const isPwd = ref(true)
 const rememberMe = ref(false)
 const loading = ref(false)
 const selectedRole = ref('student') // Default to Student
@@ -130,13 +139,19 @@ const handleLogin = async () => {
 
     if (error) throw error
 
-    // Fetch Profile to verify Role
+    // Fetch Profile to verify Role and Status
     const { data: profile } = await supabase
        .from('profiles')
-       .select('role')
+       .select('role, status')
        .eq('id', data.user.id)
        .single()
     
+    // Check for Pending Status
+    if (profile?.status !== 'active') {
+        await supabase.auth.signOut() 
+        throw new Error('Your account is pending approval by an administrator.')
+    }
+
     // Authorization Check
     const role = profile?.role?.toLowerCase() || 'student'
     const targetRole = selectedRole.value.toLowerCase()

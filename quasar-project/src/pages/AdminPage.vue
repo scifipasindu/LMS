@@ -28,7 +28,15 @@
                   dense 
                   class="text-capitalize"
                 >
-                   {{ props.row.role }}
+                   {{ props.row.role ? props.row.role.toUpperCase() : 'STUDENT' }}
+                </q-chip>
+             </q-td>
+          </template>
+
+          <template v-slot:body-cell-status="props">
+             <q-td :props="props">
+                <q-chip :color="getStatusColor(props.row.status)" text-color="white" dense icon="verified_user">
+                  {{ props.row.status ? props.row.status.toUpperCase() : 'PENDING' }}
                 </q-chip>
              </q-td>
           </template>
@@ -37,6 +45,10 @@
              <q-td :props="props">
                 <!-- Actions: Hide for Main Admin UNLESS valid Main Admin is logged in -->
                 <div v-if="props.row.email !== MAIN_ADMIN_EMAIL || currentUserEmail === MAIN_ADMIN_EMAIL">
+                    <q-btn v-if="props.row.status !== 'active'" flat round dense icon="check_circle" color="positive" @click="approveUser(props.row)">
+                        <q-tooltip>Approve User</q-tooltip>
+                    </q-btn>
+
                     <q-btn flat round dense icon="edit" color="primary" @click="editUser(props.row)">
                        <q-tooltip>Edit Profile</q-tooltip>
                     </q-btn>
@@ -127,6 +139,7 @@ const columns = [
   { name: 'full_name', label: 'Name', align: 'left', field: 'full_name', sortable: true },
   { name: 'email', label: 'Email', align: 'left', field: 'email', sortable: true },
   { name: 'role', label: 'Role', align: 'center', field: 'role', sortable: true },
+  { name: 'status', label: 'Status', align: 'center', field: 'status', sortable: true },
   { name: 'updated_at', label: 'Last Active', align: 'right', field: row => new Date(row.updated_at).toLocaleDateString() },
   { name: 'actions', label: 'Actions', align: 'right' }
 ]
@@ -145,7 +158,7 @@ const fetchUsers = async () => {
    loading.value = true
    const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, role, email, updated_at, created_at')
+      .select('id, full_name, role, email, status, updated_at, created_at')
       .order('created_at', { ascending: false })
       
    if (error) {
@@ -176,9 +189,30 @@ const getRoleColor = (role) => {
    return 'primary' 
 }
 
+const getStatusColor = (status) => {
+    return status === 'active' ? 'positive' : 'warning'
+}
+
 const editUser = (user) => {
    selectedUser.value = { ...user }
    editDialog.value = true
+}
+
+const approveUser = async (user) => {
+    try {
+        const { error } = await supabase
+           .from('profiles')
+           .update({ status: 'active' })
+           .eq('id', user.id)
+
+        if (error) throw error
+        
+        $q.notify({ type: 'positive', message: 'User Account Approved! ✅' })
+        fetchUsers()
+    } catch (err) {
+        console.error(err)
+        $q.notify({ type: 'negative', message: 'Failed to approve.' })
+    }
 }
 
 // Validation before update
@@ -220,21 +254,20 @@ const updateUser = async () => {
 }
 
 const deleteUser = async (id) => {
-    if (!confirm('Are you sure? This will remove the User Profile from the list.')) return
+    if (!confirm('Are you sure? This will remove the User COMPLETELY (Login & Profile).')) return
     
     try {
+        // Use RPC to delete from Auth Schema (Secure)
         const { error } = await supabase
-           .from('profiles')
-           .delete()
-           .eq('id', id)
+           .rpc('delete_user_by_admin', { target_user_id: id })
            
         if (error) throw error
 
-        $q.notify({ type: 'positive', message: 'Profile removed successfully' })
+        $q.notify({ type: 'positive', message: 'User deleted successfully' })
         fetchUsers()
     } catch (err) {
         console.error(err)
-        $q.notify({ type: 'negative', message: 'Failed to delete profile' })
+        $q.notify({ type: 'negative', message: 'Failed to delete user: ' + err.message })
     }
 }
 </script>

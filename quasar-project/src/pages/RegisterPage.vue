@@ -57,7 +57,7 @@
              filled 
              v-model="password" 
              label="Password" 
-             type="password" 
+             :type="isPwd ? 'password' : 'text'"
              dark 
              color="accent"
              class="input-glass"
@@ -66,13 +66,21 @@
               <template v-slot:prepend>
                 <q-icon name="lock" color="grey-5" />
               </template>
+              <template v-slot:append>
+                <q-icon
+                  :name="isPwd ? 'visibility_off' : 'visibility'"
+                  class="cursor-pointer"
+                  color="grey-5"
+                  @click="isPwd = !isPwd"
+                />
+              </template>
            </q-input>
            
            <q-input 
              filled 
              v-model="confirmPassword" 
              label="Confirm Password" 
-             type="password" 
+             :type="isPwdConfirm ? 'password' : 'text'"
              dark 
              color="accent"
              class="input-glass"
@@ -80,6 +88,14 @@
            >
               <template v-slot:prepend>
                 <q-icon name="lock_clock" color="grey-5" />
+              </template>
+              <template v-slot:append>
+                <q-icon
+                  :name="isPwdConfirm ? 'visibility_off' : 'visibility'"
+                  class="cursor-pointer"
+                  color="grey-5"
+                  @click="isPwdConfirm = !isPwdConfirm"
+                />
               </template>
            </q-input>
 
@@ -117,6 +133,8 @@ const lastName = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const isPwd = ref(true)
+const isPwdConfirm = ref(true)
 const terms = ref(false)
 const loading = ref(false)
 
