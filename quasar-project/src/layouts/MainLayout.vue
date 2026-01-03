@@ -139,6 +139,9 @@
 .logo-img {
   height: 40px;
   width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
 }
 .logo-text {
   font-size: 1.5rem; /* h5 */
