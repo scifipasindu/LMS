@@ -2,9 +2,9 @@
   <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
     <q-header reveal :class="$q.dark.isActive ? 'bg-transparent text-white' : 'bg-white text-dark'" class="q-py-lg" style="backdrop-filter: blur(10px);">
       <q-toolbar>
-        <q-btn flat no-caps no-wrap style="margin-left: 100px;" to="/">
-           <img v-if="currentLogo" :key="$q.dark.isActive" :src="currentLogo" style="height: 60px; width: auto;" alt="OnlineClass" />
-           <div v-else class="text-h5 text-primary text-weight-bold">Online<span :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Class</span></div>
+        <q-btn flat no-caps no-wrap class="logo-btn" to="/">
+           <img v-if="currentLogo" :key="$q.dark.isActive" :src="currentLogo" class="logo-img" alt="OnlineClass" />
+           <div v-else class="logo-text text-primary text-weight-bold">Online<span :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Class</span></div>
         </q-btn>
 
         <q-space />
@@ -133,6 +133,36 @@
 </template>
 
 <style scoped>
+.logo-btn {
+  margin-left: 0;
+}
+.logo-img {
+  height: 40px;
+  width: auto;
+}
+.logo-text {
+  font-size: 1.5rem; /* h5 */
+}
+
+@media (min-width: 1024px) {
+  .logo-btn {
+    margin-left: 100px;
+  }
+  .logo-img {
+    height: 60px; /* Restored desktop size */
+  }
+  .logo-text {
+     font-size: 1.5rem;
+  }
+}
+
+/* Mobile specific adjustments */
+@media (max-width: 600px) {
+  .logo-text {
+    font-size: 1.25rem; /* h6 */
+  }
+}
+
 .footer-link {
   color: #b0b0b0;
   text-decoration: none;
