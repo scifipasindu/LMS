@@ -1,7 +1,7 @@
 <template>
-  <q-page class="q-pa-lg text-white">
+  <q-page class="q-pa-lg">
     <div class="row justify-between items-center q-mb-lg">
-       <h4 class="text-h4 text-weight-bold q-my-none">Course Management</h4>
+       <h4 class="text-h4 text-weight-bold q-my-none" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Course Management</h4>
        <q-btn color="primary" icon="add" label="New Course" @click="openNewCourse" />
     </div>
 
@@ -11,7 +11,7 @@
 
     <div v-else class="row q-col-gutter-lg">
         <div class="col-12 col-md-6 col-lg-4" v-for="course in courses" :key="course.id">
-            <q-card class="bg-dark-card text-white column full-height">
+            <q-card class="column full-height" :class="$q.dark.isActive ? 'bg-dark-card text-white' : 'bg-white text-dark shadow-2'">
                 <q-img :src="course.image_url || 'https://cdn.quasar.dev/img/parallax2.jpg'" :ratio="16/9">
                     <div class="absolute-top-right q-pa-xs">
                         <q-btn round flat dense icon="edit" color="white" class="bg-black-glass q-mr-xs" @click="editCourse(course)" />
@@ -19,9 +19,13 @@
                     </div>
                 </q-img>
                 <q-card-section>
-                    <div class="text-h6">{{ course.title }}</div>
+                    <div class="row items-center justify-between no-wrap q-mb-xs">
+                         <div class="text-subtitle2 text-accent">{{ course.category || 'Uncategorized' }}</div>
+                         <q-badge outline color="primary" class="q-ml-sm">{{ course.profiles?.full_name || 'Unknown' }}</q-badge>
+                    </div>
+                    <div class="text-h6 q-mb-xs">{{ course.title }}</div>
                     <div class="text-caption text-grey-5 ellipsis-2-lines">{{ course.description }}</div>
-                    <q-chip dense color="primary" text-color="white" class="q-mt-sm">{{ course.lessons?.length || 0 }} Lessons</q-chip>
+                    <q-chip dense outline color="grey-6" size="sm" icon="library_books" class="q-mt-sm">{{ course.lessons?.length || 0 }} Lessons</q-chip>
                 </q-card-section>
                 <q-card-actions align="right" class="q-mt-auto">
                     <q-btn flat color="accent" label="Manage Videos" @click="openLessonManager(course)" />
@@ -36,8 +40,8 @@
 
     <!-- ADD/EDIT COURSE DIALOG -->
     <q-dialog v-model="showCourseDialog" persistent>
-        <q-card class="bg-dark text-white" style="min-width: 500px">
-            <q-bar class="bg-black q-py-md">
+        <q-card style="min-width: 500px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
+            <q-bar class="q-py-md" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-3'">
                 <div class="text-h6">{{ isEditing ? 'Edit Course' : 'Create New Course' }}</div>
                 <q-space />
                 <q-btn dense flat icon="close" v-close-popup />
@@ -46,19 +50,31 @@
             <q-card-section class="q-gutter-y-md q-pt-md">
                 <div class="row q-col-gutter-sm">
                     <div class="col-12 col-md-8">
-                         <q-input filled dark v-model="courseForm.title" label="Course Title" :rules="[val => !!val || 'Required']" />
+                         <q-input filled :dark="$q.dark.isActive" v-model="courseForm.title" label="Course Title" :rules="[val => !!val || 'Required']" />
                     </div>
-                    <div class="col-12 col-md-4">
-                         <q-input filled dark v-model="courseForm.category" label="Subject/Category" hint="e.g. Science" />
-                    </div>
+                     <div class="col-12 col-md-4">
+                        <q-select
+                            filled
+                            :dark="$q.dark.isActive"
+                            v-model="courseForm.category"
+                            use-input
+                            input-debounce="0"
+                            label="Subject/Category"
+                            :options="subjectOptions"
+                            @filter="filterSubjects"
+                            @new-value="createSubjectValue"
+                            behavior="menu"
+                            hint="Select or Type new"
+                        />
+                     </div>
                 </div>
 
-                <q-input filled dark v-model="courseForm.description" label="Description" type="textarea" rows="3" />
+                <q-input filled :dark="$q.dark.isActive" v-model="courseForm.description" label="Description" type="textarea" rows="3" />
                 
                 <div class="row q-col-gutter-sm">
                      <div class="col-12 col-md-6">
                         <q-select 
-                            filled dark 
+                            filled :dark="$q.dark.isActive" 
                             v-model="courseForm.teacher_id" 
                             :options="instructors" 
                             option-value="id" 
@@ -70,7 +86,7 @@
                         />
                      </div>
                      <div class="col-12 col-md-6">
-                        <q-input filled dark v-model="courseForm.schedule" label="Schedule" hint="Pick Date & Time">
+                        <q-input filled :dark="$q.dark.isActive" v-model="courseForm.schedule" label="Schedule" hint="Pick Date & Time">
                             <template v-slot:prepend>
                                 <q-icon name="event" class="cursor-pointer">
                                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -101,7 +117,7 @@
                 <div class="row items-center q-col-gutter-md">
                     <div class="col-grow">
                         <q-file 
-                            filled dark 
+                            filled :dark="$q.dark.isActive" 
                             v-model="imageFile" 
                             label="Upload Cover Image" 
                             accept="image/*"
@@ -120,7 +136,7 @@
                     </div>
                 </div>
                 <!-- Fallback URL input -->
-                <q-input filled dark v-model="courseForm.image_url" label="Or enter Image URL" caption="Auto-filled if you upload an image" />
+                <q-input filled :dark="$q.dark.isActive" v-model="courseForm.image_url" label="Or enter Image URL" caption="Auto-filled if you upload an image" />
             
             </q-card-section>
 
@@ -133,8 +149,8 @@
 
     <!-- LESSON MANAGER DIALOG -->
     <q-dialog v-model="showLessonDialog" maximized transition-show="slide-up" transition-hide="slide-down">
-        <q-card class="bg-dark text-white">
-            <q-bar class="bg-black q-py-md">
+        <q-card :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
+            <q-bar class="q-py-md" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-3'">
                 <q-btn dense flat icon="arrow_back" v-close-popup />
                 <div class="text-h6 q-ml-md">Manage Videos: {{ selectedCourse?.title }}</div>
                 <q-space />
@@ -142,7 +158,7 @@
             </q-bar>
             
             <q-card-section class="q-pa-lg">
-                <q-list dark separator bordered class="rounded-borders">
+                <q-list :dark="$q.dark.isActive" separator bordered class="rounded-borders">
                     <q-item v-for="(lesson, index) in lessons" :key="lesson.id" class="q-py-md">
                         <q-item-section avatar>
                             <q-avatar color="primary" text-color="white">{{ index + 1 }}</q-avatar>
@@ -197,14 +213,14 @@
 
     <!-- ADD VIDEO DIALOG -->
     <q-dialog v-model="showAddVideo" persistent>
-        <q-card class="bg-dark-card text-white" style="min-width: 400px; border: 1px solid #333">
+        <q-card style="min-width: 400px; border: 1px solid #333" :class="$q.dark.isActive ? 'bg-dark-card text-white' : 'bg-white text-dark'">
             <q-card-section>
                 <div class="text-h6">Add YouTube Video</div>
             </q-card-section>
             <q-card-section class="q-gutter-y-md">
-                <q-input filled dark v-model="videoForm.title" label="Lesson Title" :rules="[val => !!val || 'Required']" />
+                <q-input filled :dark="$q.dark.isActive" v-model="videoForm.title" label="Lesson Title" :rules="[val => !!val || 'Required']" />
                 <q-input 
-                    filled dark 
+                    filled :dark="$q.dark.isActive" 
                     v-model="videoForm.video_id" 
                     label="YouTube URL or ID" 
                     :rules="[val => !!val || 'Required']" 
@@ -230,6 +246,8 @@ const $q = useQuasar()
 const loading = ref(false)
 const courses = ref([])
 const instructors = ref([]) 
+const subjects = ref([])
+const subjectOptions = ref([])
 const imageFile = ref(null)
 const uploadingImage = ref(false)
 
@@ -255,7 +273,35 @@ const previewId = ref(null)
 onMounted(() => {
     fetchInstructors()
     fetchCourses()
+    fetchSubjects()
 })
+
+const fetchSubjects = async () => {
+    const { data } = await supabase.from('subjects').select('name').order('name', { ascending: true })
+    if (data) {
+        subjects.value = data.map(s => s.name)
+    }
+}
+
+const filterSubjects = (val, update) => {
+    update(() => {
+        if (val === '') {
+            subjectOptions.value = subjects.value
+        } else {
+            const needle = val.toLowerCase()
+            subjectOptions.value = subjects.value.filter(v => v.toLowerCase().indexOf(needle) > -1)
+        }
+    })
+}
+
+const createSubjectValue = (val, done) => {
+    if (val.length > 0) {
+        if (!subjects.value.includes(val)) {
+            subjects.value.push(val)
+        }
+        done(val, 'add-unique')
+    }
+}
 
 const fetchInstructors = async () => {
     const { data } = await supabase.from('profiles').select('id, email, full_name').in('role', ['admin', 'teacher'])
@@ -291,7 +337,7 @@ const handleImageUpload = async (file) => {
 
 const fetchCourses = async () => {
     loading.value = true
-    const { data, error } = await supabase.from('courses').select('*, lessons(*)').order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('courses').select('*, lessons(*), profiles(full_name)').order('created_at', { ascending: false })
     if (error) console.error(error)
     else courses.value = data
     loading.value = false

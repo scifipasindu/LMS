@@ -1,15 +1,15 @@
 <template>
   <q-page class="q-pa-lg">
     <div class="row items-center q-mb-lg">
-      <h4 class="text-h4 text-white text-weight-bold q-my-none">Payments History</h4>
+      <h4 class="text-h4 text-weight-bold q-my-none" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Payments History</h4>
     </div>
 
-    <q-card class="bg-dark-card text-white">
+    <q-card :class="$q.dark.isActive ? 'bg-dark-card text-white' : 'bg-white text-dark shadow-2'">
       <q-table
         :rows="payments"
         :columns="columns"
         row-key="id"
-        dark
+        :dark="$q.dark.isActive"
         flat
         class="bg-transparent"
       >
@@ -39,6 +39,7 @@
 </template>
 
 <script setup>
+import { ref } from 'vue' // core
 const columns = [
   { name: 'date', label: 'Date', align: 'left', field: 'date', sortable: true },
   { name: 'description', label: 'Description', align: 'left', field: 'description' },
@@ -47,11 +48,7 @@ const columns = [
   { name: 'action', label: 'Invoice', align: 'center' }
 ]
 
-const payments = [
-  { id: 1, date: '2025-10-01', description: 'October Tuition - Math', amount: 'Rs. 2500', status: 'Paid' },
-  { id: 2, date: '2025-10-05', description: 'October Tuition - Physics', amount: 'Rs. 3000', status: 'Paid' },
-  { id: 3, date: '2025-11-01', description: 'November Tuition - Math', amount: 'Rs. 2500', status: 'Pending' }
-]
+const payments = ref([]) // TODO: Connect to real payments data when available
 </script>
 
 <style scoped>

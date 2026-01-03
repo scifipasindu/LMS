@@ -36,7 +36,7 @@
         <q-tab name="footer" label="Footer" icon="info" />
       </q-tabs>
 
-      <q-separator dark />
+      <q-separator :dark="$q.dark.isActive" />
 
       <q-tab-panels v-model="tab" animated class="bg-transparent">
         
@@ -46,7 +46,7 @@
             <div class="col-12 col-md-6">
               <h6 class="text-h6 q-my-sm">Site Identity</h6>
               <q-input 
-                dark filled v-model="settings.general.siteTitle" 
+                :dark="$q.dark.isActive" filled v-model="settings.general.siteTitle" 
                 label="Site Title" 
                 class="q-mb-md" 
               />

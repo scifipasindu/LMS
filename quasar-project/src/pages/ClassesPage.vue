@@ -1,12 +1,12 @@
 <template>
   <q-page class="q-pa-lg">
     <div class="row items-center q-mb-lg">
-      <h4 class="text-h4 text-white text-weight-bold q-my-none">My Classes</h4>
+      <h4 class="text-h4 text-weight-bold q-my-none" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">My Classes</h4>
     </div>
 
     <div class="row q-col-gutter-lg">
       <div class="col-12 col-md-4" v-for="course in courses" :key="course.id">
-        <q-card class="bg-dark-card text-white column full-height">
+        <q-card class="column full-height" :class="$q.dark.isActive ? 'bg-dark-card text-white' : 'bg-white text-dark shadow-2'">
           <q-img :src="course.image" :ratio="16/9">
              <div class="absolute-bottom text-subtitle2 bg-black-grad">
                {{ course.teacher }}
@@ -25,18 +25,18 @@
             <div class="row items-center no-wrap">
               <div class="col">
                 <div class="text-h6">{{ course.title }}</div>
-                <div class="text-caption text-grey-5">{{ course.schedule }}</div>
+                <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">{{ course.schedule }}</div>
               </div>
             </div>
           </q-card-section>
 
           <q-card-section class="q-pt-none">
-            <div class="text-caption text-grey">Progress</div>
+            <div class="text-caption" :class="$q.dark.isActive ? 'text-grey' : 'text-grey-7'">Progress</div>
             <q-linear-progress :value="course.progress" color="accent" class="q-mt-xs" rounded />
           </q-card-section>
 
           <q-card-actions align="right" class="q-mt-auto">
-            <q-btn flat color="accent" label="View Class" :to="`/course/${course.id}/learn`" />
+            <q-btn flat color="accent" label="View Class" :to="`/dashboard/course/${course.id}`" />
           </q-card-actions>
         </q-card>
       </div>

@@ -1,21 +1,21 @@
 <template>
-  <q-page class="q-pa-lg text-white">
+  <q-page class="q-pa-lg" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
     <div class="row justify-between items-center q-mb-lg">
        <h4 class="text-h4 text-weight-bold q-my-none">User Management</h4>
        <!-- Removed Add User Button - Users must Register themselves -->
     </div>
     
-    <div class="q-pa-md bg-dark-card q-mb-md text-grey-5" style="border-radius: 8px; border-left: 4px solid var(--q-primary)">
+    <div class="q-pa-md q-mb-md" :class="$q.dark.isActive ? 'bg-dark-card text-grey-5' : 'bg-blue-1 text-primary'" style="border-radius: 8px; border-left: 4px solid var(--q-primary)">
         <q-icon name="info" size="sm" class="q-mr-sm"/>
         To add a new Admin or Teacher, ask them to <strong>Register</strong> first. Then find them here and update their <strong>Role</strong>.
     </div>
 
-    <q-card class="bg-dark-card">
+    <q-card :class="$q.dark.isActive ? 'bg-dark-card' : 'bg-white shadow-2'">
        <q-table
           :rows="users"
           :columns="columns"
           row-key="id"
-          dark
+          :dark="$q.dark.isActive"
           flat
           :loading="loading"
           class="bg-transparent"
@@ -49,15 +49,21 @@
                         <q-tooltip>Approve User</q-tooltip>
                     </q-btn>
 
-                    <q-btn flat round dense icon="edit" color="primary" @click="editUser(props.row)">
+                    <q-btn flat round dense icon="edit" color="primary" @click="editUser(props.row)" :disable="!canEdit(props.row)">
                        <q-tooltip>Edit Profile</q-tooltip>
                     </q-btn>
+                    
+                    <q-btn flat round dense icon="lock_reset" color="warning" @click="resetPassword(props.row)">
+                       <q-tooltip>Send Password Reset Email</q-tooltip>
+                    </q-btn>
+
                     <!-- Delete NEVER allowed for Main Admin -->
-                    <q-btn v-if="props.row.email !== MAIN_ADMIN_EMAIL" flat round dense icon="delete" color="negative" @click="deleteUser(props.row.id)">
+                    <!-- Delete Button (PIN Protected for Super Admin targets) -->
+                    <q-btn flat round dense icon="delete" color="negative" @click="confirmDelete(props.row)">
                        <q-tooltip>Delete Profile</q-tooltip>
                     </q-btn>
                 </div>
-                <div v-else class="text-grey-7 text-caption">Protected</div>
+                <div v-else class="text-caption" :class="$q.dark.isActive ? 'text-grey-7' : 'text-grey-5'">Protected</div>
              </q-td>
           </template>
        </q-table>
@@ -65,7 +71,7 @@
 
     <!-- Edit Profile Dialog -->
     <q-dialog v-model="editDialog" persistent>
-       <q-card class="bg-dark text-white" style="min-width: 400px">
+       <q-card style="min-width: 400px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
           <q-card-section>
              <div class="text-h6">Edit Role</div>
           </q-card-section>
@@ -102,6 +108,35 @@
        </q-card>
     </q-dialog>
 
+  
+    <!-- Security PIN Dialog -->
+     <q-dialog v-model='pinDialog' persistent>
+        <q-card style='min-width: 300px' :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
+            <q-card-section>
+                <div class='text-h6 text-negative'>Security Check</div>
+                <div class='text-caption'>Enter your 6-digit Security PIN to proceed.</div>
+            </q-card-section>
+            
+            <q-card-section>
+                <q-input 
+                    v-model="pinInput" 
+                    dense filled 
+                    :dark="$q.dark.isActive" 
+                    label='Security PIN' 
+                    mask='######' 
+                    type='password' 
+                    autofocus
+                    @keyup.enter='verifyPin'
+                />
+            </q-card-section>
+
+            <q-card-actions align='right'>
+                <q-btn flat label='Cancel' v-close-popup />
+                <q-btn flat label='Verify & Proceed' color='negative' @click='verifyPin' :disable='pinInput.length !== 6' />
+            </q-card-actions>
+        </q-card>
+     </q-dialog>
+
   </q-page>
 </template>
 
@@ -125,21 +160,29 @@ const MAIN_ADMIN_EMAIL = 'janiruhansaga2029@gmail.com'
 const editDialog = ref(false)
 const selectedUser = ref(null)
 
+// PIN State
+const pinDialog = ref(false)
+const pinInput = ref('')
+const currentUserPin = ref('')
+const pendingDeleteId = ref(null)
+
 // Role Options computed based on permissions
 const roleOptions = computed(() => {
-    // Only Main Admin can assign Admin/Staff roles
-    if (currentUserEmail.value === MAIN_ADMIN_EMAIL) {
-        return ['student', 'teacher', 'admin', 'staff']
-    } else {
-        return ['student', 'teacher']
-    }
+    return ['student', 'teacher', 'admin', 'staff']
 })
+
+const canEdit = (row) => {
+    // Cannot edit Super Admin unless it's yourself
+    if (row.is_super_admin && currentUserEmail.value !== row.email) return false
+    return true
+}
 
 const columns = [
   { name: 'full_name', label: 'Name', align: 'left', field: 'full_name', sortable: true },
   { name: 'email', label: 'Email', align: 'left', field: 'email', sortable: true },
   { name: 'role', label: 'Role', align: 'center', field: 'role', sortable: true },
   { name: 'status', label: 'Status', align: 'center', field: 'status', sortable: true },
+  { name: 'is_super_admin', label: 'Super Admin', align: 'center', field: 'is_super_admin', sortable: true },
   { name: 'updated_at', label: 'Last Active', align: 'right', field: row => new Date(row.updated_at).toLocaleDateString() },
   { name: 'actions', label: 'Actions', align: 'right' }
 ]
@@ -156,9 +199,19 @@ onMounted(async () => {
 
 const fetchUsers = async () => {
    loading.value = true
+   
+   // Get Current User & PIN
+   const { data: { user } } = await supabase.auth.getUser()
+   if (user) {
+       currentUserEmail.value = user.email
+       // Fetch current admin's PIN
+       const { data: adminProfile } = await supabase.from('profiles').select('security_pin').eq('id', user.id).single()
+       if (adminProfile) currentUserPin.value = adminProfile.security_pin
+   }
+
    const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, role, email, status, updated_at, created_at')
+      .select('id, full_name, role, email, status, updated_at, created_at, is_super_admin')
       .order('created_at', { ascending: false })
       
    if (error) {
@@ -174,6 +227,36 @@ const fetchUsers = async () => {
        }
    }
    loading.value = false
+}
+
+// PIN VALIDATION LOGIC
+const confirmDelete = (row) => {
+    pendingDeleteId.value = row.id
+    
+    // Require PIN if current user has one set
+    if (currentUserPin.value) {
+        pinInput.value = ''
+        pinDialog.value = true
+    } else {
+        // Fallback or warning if no PIN set
+        $q.dialog({
+            title: 'Confirm Delete',
+            message: 'Are you sure? This cannot be undone.',
+            cancel: true,
+            persistent: true
+        }).onOk(() => {
+            deleteUser(row.id, true) // Pass true to skip confirm in deleteUser
+        })
+    }
+}
+
+const verifyPin = () => {
+    if (pinInput.value === currentUserPin.value) {
+        pinDialog.value = false
+        deleteUser(pendingDeleteId.value, true)
+    } else {
+        $q.notify({ type: 'negative', message: 'Invalid PIN' })
+    }
 }
 
 // Watch for route changes to re-fetch/re-filter
@@ -196,6 +279,23 @@ const getStatusColor = (status) => {
 const editUser = (user) => {
    selectedUser.value = { ...user }
    editDialog.value = true
+}
+
+const resetPassword = async (user) => {
+    if (!confirm(`Send password reset email to ${user.email}?\nThey will receive a link to set a new password.`)) return
+    
+    try {
+        const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+            redirectTo: window.location.origin + '/dashboard/profile'
+        })
+        
+        if (error) throw error
+        
+        $q.notify({ type: 'positive', message: `Reset email sent to ${user.email}` })
+    } catch (err) {
+        console.error(err)
+        $q.notify({ type: 'negative', message: 'Failed to send reset email: ' + err.message })
+    }
 }
 
 const approveUser = async (user) => {
@@ -253,8 +353,8 @@ const updateUser = async () => {
     }
 }
 
-const deleteUser = async (id) => {
-    if (!confirm('Are you sure? This will remove the User COMPLETELY (Login & Profile).')) return
+const deleteUser = async (id, skipConfirm = false) => {
+    if (!skipConfirm && !confirm('Are you sure? This will remove the User COMPLETELY (Login & Profile).')) return
     
     try {
         // Use RPC to delete from Auth Schema (Secure)

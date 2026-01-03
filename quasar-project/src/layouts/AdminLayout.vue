@@ -1,14 +1,10 @@
 <template>
   <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark-page text-white' : 'bg-grey-1 text-dark'">
-    <q-header :class="$q.dark.isActive ? 'bg-dark-glass text-white' : 'bg-white text-dark'" class="backdrop-blur q-py-xs" style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-       <q-toolbar>
+    <q-header :class="$q.dark.isActive ? 'bg-dark-glass text-white' : 'bg-white text-dark'" class="backdrop-blur q-py-xs" :style="$q.dark.isActive ? 'border-bottom: 1px solid rgba(255,255,255,0.05)' : 'border-bottom: 1px solid rgba(0,0,0,0.05)'">
+      <q-toolbar>
          <q-toolbar-title class="text-weight-bold">
             <span class="text-accent">Admin</span>Console
          </q-toolbar-title>
-         
-         <q-btn flat round dense :icon="$q.dark.isActive ? 'light_mode' : 'dark_mode'" class="q-mr-sm" @click="toggleTheme">
-            <q-tooltip>Toggle Theme</q-tooltip>
-         </q-btn>
          
          <q-btn flat dense icon="logout" label="Exit to App" to="/dashboard" />
        </q-toolbar>
@@ -149,10 +145,7 @@ const leftDrawerOpen = ref(true)
 const logoSettings = ref({ dark: '', light: '' })
 const currentLogo = ref('')
 
-// Toggle Theme Function
-const toggleTheme = () => {
-    $q.dark.toggle()
-}
+// Toggle function removed
 
 // Watch for theme changes or settings load
 watch([() => $q.dark.isActive, logoSettings], () => {

@@ -3,6 +3,13 @@
     <q-spinner size="3em" color="primary" />
   </q-page>
 
+  <q-page v-else-if="!hasAccess && !checkingAccess" class="flex flex-center bg-black text-white column">
+      <q-icon name="lock" size="4em" color="negative" />
+      <div class="text-h5 q-mt-md">Access Denied</div>
+      <div class="text-grey q-mt-sm">You are not enrolled in this course.</div>
+      <q-btn color="primary" label="Go Back" to="/dashboard/classes" class="q-mt-md" />
+  </q-page>
+
   <q-page v-else class="bg-black text-white row">
     <!-- Main Video Section -->
     <div class="col-12 col-md-9 q-pa-md flex column">
@@ -11,9 +18,10 @@
             <div class="text-h5 q-ml-sm">{{ course.title }}</div>
         </div>
 
-        <div class="video-container relative-position bg-dark rounded-borders overflow-hidden shadow-10">
+        <div class="video-container relative-position bg-dark rounded-borders overflow-hidden shadow-10" ref="videoContainer">
             <iframe 
                 v-if="currentLesson"
+                ref="videoIframe"
                 width="100%" 
                 height="100%" 
                 :src="getEmbedUrl(currentLesson.video_id)" 
@@ -27,11 +35,15 @@
                 Select a lesson to start learning
             </div>
 
-            <!-- SECURITY SHIELDS -->
-            <div class="absolute-top-right transparent-shield" style="width: 100%; height: 80px; z-index: 10; cursor: default;"></div>
-            <div class="absolute-top-right transparent-shield" style="width: 200px; height: 120px; z-index: 11; cursor: default;"></div>
-            <!-- Bottom Right Shield for YouTube Logo -->
-            <div class="absolute-bottom-right transparent-shield" style="width: 150px; height: 60px; z-index: 10; cursor: default;"></div>
+            <!-- SECURITY SHIELD: Covers Top part (prevents right click on video) but exposes controls -->
+            <div 
+                v-if="currentLesson" 
+                class="absolute-top transparent-shield cursor-pointer" 
+                style="z-index: 20; height: calc(100% - 55px);"
+                @click="togglePlay"
+                @contextmenu.prevent
+            >
+            </div>
         </div>
 
         <div class="q-mt-md">
@@ -76,24 +88,65 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
 
 const route = useRoute()
+const router = useRouter()
 const $q = useQuasar()
 const loading = ref(true)
 const course = ref({})
 const lessons = ref([])
 const currentLesson = ref(null)
+const videoIframe = ref(null)
+const isPlaying = ref(false)
+const hasAccess = ref(false)
+const checkingAccess = ref(true)
 
 onMounted(async () => {
+    // Listen for YouTube API messages
+    window.addEventListener('message', handleMessage)
+
     const courseId = route.params.id
     if (!courseId) return
 
     loading.value = true
     try {
+        // 1. Check Access First
+        checkingAccess.value = true
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (!user) {
+             $q.notify({ type: 'warning', message: 'Please login first' })
+             router.push('/login')
+             return
+        }
+
+        // Check if Admin
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        if (profile?.role === 'admin') {
+            hasAccess.value = true
+        } else {
+            // Check Enrollment
+            const { data: enrollment } = await supabase
+                .from('enrollments')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('course_id', courseId)
+                .single()
+            
+            if (enrollment) {
+                hasAccess.value = true
+            } else {
+                hasAccess.value = false
+                loading.value = false
+                return // Stop here if no access
+            }
+        }
+        checkingAccess.value = false
+
         // Fetch Course
         const { data: cData, error: cError } = await supabase.from('courses').select('*').eq('id', courseId).single()
         if (cError) throw cError
@@ -113,23 +166,62 @@ onMounted(async () => {
         $q.notify({ type: 'negative', message: 'Failed to load course' })
     } finally {
         loading.value = false
+        checkingAccess.value = false
     }
 })
 
+onBeforeUnmount(() => {
+    window.removeEventListener('message', handleMessage)
+})
+
+const handleMessage = (event) => {
+    // Basic state tracking from YouTube events
+    try {
+        const data = JSON.parse(event.data)
+        if (data.event === 'infoDelivery' && data.info && data.info.playerState !== undefined) {
+             // 1 = playing, 2 = paused, 0 = ended
+             if (data.info.playerState === 1) isPlaying.value = true
+             else if (data.info.playerState === 2) isPlaying.value = false
+        }
+    } catch {
+        // ignore non-json messages
+    }
+}
+
+const videoContainer = ref(null)
+
+const togglePlay = () => {
+    if (!videoIframe.value) return
+    const command = isPlaying.value ? 'pauseVideo' : 'playVideo'
+    videoIframe.value.contentWindow.postMessage(JSON.stringify({
+        'event': 'command',
+        'func': command,
+        'args': []
+    }), '*')
+    isPlaying.value = !isPlaying.value // optimistically update
+}
+
+
 const playLesson = (lesson) => {
     currentLesson.value = lesson
+    isPlaying.value = true // Assume autoplay
 }
 
 const getEmbedUrl = (id) => {
-    return `https://www.youtube.com/embed/${id}?autoplay=1&modestbranding=1&rel=0`
+    return `https://www.youtube.com/embed/${id}?autoplay=1&modestbranding=1&rel=0&enablejsapi=1&controls=1&fs=1`
 }
 </script>
-
 <style scoped>
 .video-container {
     width: 100%;
     aspect-ratio: 16/9;
     background: #000;
+}
+.bg-gradient-fade {
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+}
+.bg-dark-glass {
+    background: rgba(0, 0, 0, 0.4);
 }
 .bg-dark-sidebar {
     background: #121212;

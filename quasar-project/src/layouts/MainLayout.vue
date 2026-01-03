@@ -197,6 +197,7 @@ watch([() => $q.dark.isActive, logoSettings], () => {
 
 const toggleTheme = () => {
    $q.dark.toggle()
+   $q.localStorage.set('isDark', $q.dark.isActive)
 }
 
 onMounted(async () => {

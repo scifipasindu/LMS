@@ -42,6 +42,7 @@ const routes = [
 
       // Old
       { path: 'dashboard/assignments', component: () => import('pages/AssignmentsPage.vue') },
+      { path: 'course/:id', component: () => import('pages/ClassDetailsPage.vue') },
       { path: 'course/:id/learn', component: () => import('pages/CoursePlayerPage.vue') }
     ],
     meta: { requiresAuth: true }

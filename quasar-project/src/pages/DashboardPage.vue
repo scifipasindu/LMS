@@ -3,13 +3,13 @@
     <!-- Welcome Header -->
     <div class="row items-center q-mb-xl">
        <div class="col-12 col-md-8">
-          <h4 class="text-h4 text-white text-weight-bold q-my-none">
+          <h4 class="text-h4 text-weight-bold q-my-none" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
              Welcome Back, <span class="text-gradient">{{ userRole }}</span>! 👋
           </h4>
-          <p class="text-grey-5 q-mt-sm text-subtitle1">You have <span class="text-white text-weight-bold">2 sessions</span> coming up today.</p>
+          <p class="text-subtitle1 q-mt-sm" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-8'">You have <span class="text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">2 sessions</span> coming up today.</p>
        </div>
        <div class="col-12 col-md-4 text-right gt-sm">
-          <q-btn unelevated rounded color="white" text-color="dark" label="View Schedule" icon="calendar_today" class="q-px-lg q-py-sm text-weight-bold" />
+          <q-btn unelevated rounded :color="$q.dark.isActive ? 'white' : 'primary'" :text-color="$q.dark.isActive ? 'dark' : 'white'" label="View Schedule" icon="calendar_today" class="q-px-lg q-py-sm text-weight-bold" />
        </div>
     </div>
 
@@ -60,13 +60,13 @@
        <!-- My Courses -->
        <div class="col-12 col-md-8">
           <div class="row items-center justify-between q-mb-lg">
-             <h5 class="text-h5 text-white text-weight-bold q-my-none">My Courses</h5>
+             <h5 class="text-h5 text-weight-bold q-my-none" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">My Courses</h5>
              <q-btn flat dense no-caps label="View All" color="primary" />
           </div>
           
           <div v-if="courses.length > 0" class="row q-col-gutter-md">
              <div v-for="(course, index) in courses" :key="index" class="col-12 col-sm-6">
-                <q-card class="course-card bg-dark-card text-white">
+                <q-card class="course-card" :class="$q.dark.isActive ? 'bg-dark-card text-white' : 'bg-white text-dark shadow-2'">
                    <q-img src="https://cdn.quasar.dev/img/parallax2.jpg" height="150px">
                       <div class="absolute-bottom text-subtitle2 text-weight-bold bg-transparent">
                          {{ course.name }}
@@ -87,8 +87,8 @@
           
           <!-- Activity Graph Placeholder -->
           <div class="q-mt-xl">
-              <h5 class="text-h5 text-white text-weight-bold q-mb-lg">Learning Activity</h5>
-              <q-card class="bg-dark-card text-white q-pa-md graph-card">
+              <h5 class="text-h5 text-weight-bold q-mb-lg" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Learning Activity</h5>
+              <q-card class="graph-card q-pa-md" :class="$q.dark.isActive ? 'bg-dark-card text-white' : 'bg-white text-dark shadow-2'">
                  <!-- Simple visualization for now -->
                  <div class="row items-end justify-between q-gutter-x-sm" style="height: 150px">
                     <div class="bg-primary-soft rounded-borders" style="flex: 1; height: 40%"></div>
@@ -108,9 +108,9 @@
 
        <!-- Sidebar: Schedule & Notifications -->
        <div class="col-12 col-md-4">
-           <h5 class="text-h5 text-white text-weight-bold q-mb-lg q-mt-none">Up Next</h5>
-           <q-card class="bg-dark-card text-white q-mb-lg schedule-card">
-              <q-list v-if="schedule.length > 0" separator dark>
+           <h5 class="text-h5 text-weight-bold q-mb-lg q-mt-none" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Up Next</h5>
+           <q-card class="q-mb-lg schedule-card" :class="$q.dark.isActive ? 'bg-dark-card text-white' : 'bg-white text-dark shadow-2'">
+              <q-list v-if="schedule.length > 0" separator :dark="$q.dark.isActive">
                  <q-item v-for="(item, index) in schedule" :key="index">
                     <q-item-section avatar>
                        <div class="date-badge bg-primary-soft text-primary column flex-center">
@@ -120,31 +120,31 @@
                     </q-item-section>
                     <q-item-section>
                        <q-item-label class="text-weight-bold">{{ item.title }}</q-item-label>
-                       <q-item-label caption class="text-grey-5">{{ item.time }}</q-item-label>
+                       <q-item-label caption :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">{{ item.time }}</q-item-label>
                     </q-item-section>
                  </q-item>
               </q-list>
-              <div v-else class="text-grey-5 q-pa-md text-center">
+              <div v-else class="q-pa-md text-center" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">
                  No upcoming sessions.
               </div>
            </q-card>
            
            <!-- Quick Actions -->
-           <h5 class="text-h5 text-white text-weight-bold q-mb-md">Quick Actions</h5>
+           <h5 class="text-h5 text-weight-bold q-mb-md" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Quick Actions</h5>
            <div class="row q-col-gutter-sm">
               <div class="col-6">
-                 <q-btn unelevated color="dark-lighter" class="full-width action-btn" no-caps>
+                 <q-btn unelevated :color="$q.dark.isActive ? 'dark-lighter' : 'white'" class="full-width action-btn shadow-1" no-caps>
                     <div class="column items-center q-py-sm">
                        <q-icon name="upload_file" color="accent" size="24px" class="q-mb-xs" />
-                       <span class="text-caption text-grey-4">Upload Homework</span>
+                       <span class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'">Upload Homework</span>
                     </div>
                  </q-btn>
               </div>
               <div class="col-6">
-                 <q-btn unelevated color="dark-lighter" class="full-width action-btn" no-caps>
+                 <q-btn unelevated :color="$q.dark.isActive ? 'dark-lighter' : 'white'" class="full-width action-btn shadow-1" no-caps>
                     <div class="column items-center q-py-sm">
                        <q-icon name="credit_card" color="secondary" size="24px" class="q-mb-xs" />
-                       <span class="text-caption text-grey-4">Pay Fees</span>
+                       <span class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'">Pay Fees</span>
                     </div>
                  </q-btn>
               </div>
@@ -251,6 +251,10 @@ onMounted(async () => {
 }
 
 .graph-card {
+    background: transparent;
+}
+
+body.body--dark .graph-card {
     background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
 }
 </style>

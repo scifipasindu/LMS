@@ -25,9 +25,7 @@
 
         <q-btn flat dense no-caps icon="home" label="Home" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'" class="q-mr-sm gt-xs" type="a" href="/" target="_blank" />
         
-        <q-btn flat round dense :icon="$q.dark.isActive ? 'light_mode' : 'dark_mode'" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'" class="q-mr-sm" @click="toggleTheme">
-           <q-tooltip>Toggle Theme</q-tooltip>
-        </q-btn>
+
 
         <q-btn flat round dense icon="notifications_none" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'" class="q-mr-sm">
            <q-badge color="accent" floating rounded dot />
@@ -35,14 +33,14 @@
         
         <q-btn flat round dense no-caps class="q-ml-sm">
            <q-avatar size="32px">
-              <img src="https://cdn.quasar.dev/img/boy-avatar.png">
+              <img :src="userAvatar || 'https://cdn.quasar.dev/img/boy-avatar.png'">
            </q-avatar>
            <q-menu auto-close :dark="$q.dark.isActive" :class="$q.dark.isActive ? 'bg-dark-glass backdrop-blur' : 'bg-white backdrop-blur'" :style="$q.dark.isActive ? 'border: 1px solid rgba(255,255,255,0.1)' : 'border: 1px solid rgba(0,0,0,0.1)'">
               <q-list style="min-width: 150px">
-                <q-item clickable>
+                <q-item clickable to="/dashboard/profile">
                   <q-item-section>Profile</q-item-section>
                 </q-item>
-                <q-item clickable>
+                <q-item clickable to="/dashboard/settings">
                   <q-item-section>Settings</q-item-section>
                 </q-item>
                 <q-separator :dark="$q.dark.isActive" />
@@ -81,13 +79,13 @@
             </q-item-section>
             <q-item-section>Dashboard</q-item-section>
           </q-item>
-          <q-item clickable v-ripple to="/dashboard/pages" active-class="active-item">
+          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/pages" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="article" />
             </q-item-section>
             <q-item-section>Pages</q-item-section>
           </q-item>
-          <q-item clickable v-ripple to="/dashboard/guides" active-class="active-item">
+          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/guides" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="help_outline" />
             </q-item-section>
@@ -104,13 +102,13 @@
             </q-item-section>
             <q-item-section>Classes</q-item-section>
           </q-item>
-          <q-item clickable v-ripple to="/dashboard/subjects" active-class="active-item">
+          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/subjects" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="menu_book" />
             </q-item-section>
             <q-item-section>Subjects</q-item-section>
           </q-item>
-          <q-item clickable v-ripple to="/dashboard/institutes" active-class="active-item">
+          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/institutes" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="domain" />
             </q-item-section>
@@ -127,7 +125,7 @@
         <!-- MANAGEMENT -->
         <div class="text-caption text-grey-6 q-mb-sm q-ml-sm text-weight-bold text-uppercase">Management</div>
         <q-list class="q-gutter-y-xs q-mb-md">
-          <q-item clickable v-ripple to="/dashboard/reports" active-class="active-item">
+          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/reports" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="bar_chart" />
             </q-item-section>
@@ -215,7 +213,9 @@ const router = useRouter()
 const leftDrawerOpen = ref(false)
 const search = ref('')
 const isAdmin = ref(false)
+
 const userRole = ref('Student')
+const userAvatar = ref('')
 
 const logoSettings = ref({ dark: '', light: '' })
 const currentLogo = ref('')
@@ -226,9 +226,7 @@ watch([() => $q.dark.isActive, logoSettings], () => {
    currentLogo.value = isDark ? logoSettings.value.dark : (logoSettings.value.light || logoSettings.value.dark)
 }, { deep: true, immediate: true })
 
-const toggleTheme = () => {
-   $q.dark.toggle() // This triggers the watch
-}
+
 
 onMounted(async () => {
    checkRole()
@@ -256,7 +254,7 @@ const checkRole = async () => {
    if (user) {
        const { data: profile } = await supabase
          .from('profiles')
-         .select('role')
+         .select('role, avatar_url')
          .eq('id', user.id)
          .single()
          
@@ -266,7 +264,7 @@ const checkRole = async () => {
               'teacher': 'Instructor',
               'student': 'Student'
            }
-           userRole.value = roleMap[profile.role] || 'User'
+           userRole.value = roleMap[profile.role] || 'User'; userAvatar.value = profile.avatar_url;
            
            if (profile.role === 'admin') {
                isAdmin.value = true
@@ -309,6 +307,10 @@ const handleLogout = async () => {
   border-radius: 8px;
   border: none;
 }
+body.body--light .search-input :deep(.q-field__control) {
+    background: #f5f5f5 !important;
+    color: #333;
+}
 
 .active-item {
   background: linear-gradient(90deg, rgba($primary, 0.15) 0%, transparent 100%);
@@ -322,13 +324,23 @@ const handleLogout = async () => {
 
 .q-item {
   border-radius: 0 8px 8px 0;
-  color: #a0a0a0;
   transition: all 0.3s;
-  
-  &:hover {
-    color: white;
-    background: rgba(255,255,255,0.02);
-  }
+}
+
+body.body--dark .q-item {
+    color: #a0a0a0;
+    &:hover {
+        color: white;
+        background: rgba(255,255,255,0.02);
+    }
+}
+
+body.body--light .q-item {
+    color: #666;
+    &:hover {
+        color: $primary;
+        background: rgba($primary, 0.05);
+    }
 }
 
 .hover-negative:hover {
@@ -341,5 +353,15 @@ const handleLogout = async () => {
   background: rgba(255,255,255,0.03);
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,0.05);
+}
+
+body.body--light .glass-card-mini {
+    background: white;
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+body.body--light .glass-card-mini .text-subtitle2 {
+    color: #333 !important;
 }
 </style>
