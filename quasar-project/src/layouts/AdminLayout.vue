@@ -5,6 +5,11 @@
          <q-toolbar-title class="text-weight-bold">
             <span class="text-accent">Admin</span>Console
          </q-toolbar-title>
+         
+         <q-btn flat round dense :icon="$q.dark.isActive ? 'light_mode' : 'dark_mode'" class="q-mr-sm" @click="toggleTheme">
+            <q-tooltip>Toggle Theme</q-tooltip>
+         </q-btn>
+         
          <q-btn flat dense icon="logout" label="Exit to App" to="/dashboard" />
        </q-toolbar>
     </q-header>
@@ -143,6 +148,11 @@ const leftDrawerOpen = ref(true)
 
 const logoSettings = ref({ dark: '', light: '' })
 const currentLogo = ref('')
+
+// Toggle Theme Function
+const toggleTheme = () => {
+    $q.dark.toggle()
+}
 
 // Watch for theme changes or settings load
 watch([() => $q.dark.isActive, logoSettings], () => {
