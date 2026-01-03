@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark-page' : 'bg-grey-1'">
+  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark-page text-white' : 'bg-grey-1 text-dark'">
     <q-header :class="$q.dark.isActive ? 'bg-dark-glass text-white' : 'bg-white text-dark'" class="backdrop-blur q-py-xs" style="border-bottom: 1px solid rgba(255,255,255,0.05);">
        <q-toolbar>
          <q-toolbar-title class="text-weight-bold">
@@ -14,7 +14,7 @@
        </q-toolbar>
     </q-header>
 
-    <q-drawer show-if-above v-model="leftDrawerOpen" side="left" :class="$q.dark.isActive ? 'bg-dark-sidebar' : 'bg-white'" :width="260">
+    <q-drawer show-if-above v-model="leftDrawerOpen" side="left" :class="$q.dark.isActive ? 'bg-dark-sidebar text-white' : 'bg-white text-dark'" :width="260">
        <div class="q-pa-lg flex flex-center q-mb-md">
          <img v-if="currentLogo" :key="$q.dark.isActive" :src="currentLogo" style="height: 45px; object-fit: contain;" />
          <div v-else class="text-h6 text-weight-bold"><span class="text-primary">Online</span><span :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Class</span></div>
