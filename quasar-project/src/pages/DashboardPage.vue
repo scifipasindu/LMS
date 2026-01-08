@@ -157,7 +157,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { supabase } from 'boot/supabase'
+import { useQuasar, date } from 'quasar'
 
+const $q = useQuasar()
 const userName = ref('User')
 const userRole = ref('')
 const attendance = ref('0%')
@@ -167,8 +169,12 @@ const courses = ref([])
 const schedule = ref([])
 const currencySymbol = ref('Rs.') // Default
 
+ 
+
 onMounted(async () => {
   await fetchSettings()
+  await fetchSchedule()
+  // ... existing user fetch
   const { data: { user } } = await supabase.auth.getUser()
   if (user) {
       // Fetch Detailed Profile
@@ -203,6 +209,29 @@ const fetchSettings = async () => {
    if (data?.value?.general?.currency?.symbol) {
        currencySymbol.value = data.value.general.currency.symbol
    }
+}
+
+const fetchSchedule = async () => {
+    // Fetch upcoming classes
+    const { data } = await supabase
+        .from('class_schedules')
+        .select('*')
+        .gte('start_time', new Date().toISOString())
+        .order('start_time', { ascending: true })
+        .limit(3)
+        
+    if (data && data.length > 0) {
+        schedule.value = data.map(cls => {
+            const d = new Date(cls.start_time)
+            return {
+                title: cls.title,
+                time: date.formatDate(d, 'h:mm A'),
+                date: date.formatDate(d, 'D'),
+                month: date.formatDate(d, 'MMM'),
+                link: cls.link
+            }
+        })
+    }
 }
 </script>
 

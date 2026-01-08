@@ -29,6 +29,7 @@ const routes = [
 
       // Academic
       { path: 'classes', component: () => import('pages/ClassesPage.vue') },
+      { path: 'live-classes', component: () => import('pages/LiveClassesPage.vue') },
       { path: 'subjects', component: () => import('pages/SubjectsPage.vue') },
       { path: 'institutes', component: () => import('pages/InstitutesPage.vue') },
 

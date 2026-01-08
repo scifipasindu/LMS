@@ -27,8 +27,22 @@
               </div>
               
               <h5 class="text-h5 text-weight-bold q-my-sm">{{ profile.full_name || 'User' }}</h5>
-              <div class="text-subtitle2 q-mb-sm" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">{{ userEmail }}</div>
-              <div class="text-caption text-primary text-uppercase text-weight-bold">{{ profile.role }}</div>
+              <div class="text-subtitle2 q-mb-sm" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">{{ (isEditingOther && profile.email) ? profile.email : userEmail }}</div>
+              
+              <div v-if="isAdmin" class="q-mt-sm">
+                  <q-select 
+                    v-model="profile.role" 
+                    :options="roleOptions" 
+                    label="Role" 
+                    dense 
+                    filled 
+                    :dark="$q.dark.isActive"
+                    class="q-mx-auto"
+                    style="max-width: 150px"
+                    :hint="!isEditingOther ? 'WARNING: Changing own role may lose Admin access' : ''"
+                  />
+              </div>
+              <div v-else class="text-caption text-primary text-uppercase text-weight-bold">{{ profile.role }}</div>
               
               <q-separator :dark="$q.dark.isActive" class="q-my-md" />
               
@@ -170,6 +184,25 @@
           </q-card>
        </div>
     </div>
+
+    <!-- MFA Verification Dialog -->
+    <q-dialog v-model="showMfaDialog" persistent>
+      <q-card style="min-width: 350px">
+        <q-card-section>
+          <div class="text-h6">Security Check</div>
+          <div class="text-caption">Enter your Authenticator Code to verify role change.</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-input dense v-model="verificationCode" autofocus @keyup.enter="verifyAndProceed" mask="######" filled placeholder="000000" />
+        </q-card-section>
+
+        <q-card-actions align="right" class="text-primary">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn flat label="Verify & Save" @click="verifyAndProceed" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -197,10 +230,6 @@ const profile = ref({
     security_pin: ''
 })
 
-const isEditingOther = computed(() => {
-    return route.query.userId && currentUserEmail.value && profile.value.email !== currentUserEmail.value
-})
-
 const newPassword = ref('')
 const confirmPassword = ref('')
 const isMfaEnabled = ref(false)
@@ -208,58 +237,85 @@ const mfaData = ref({})
 const mfaCode = ref('')
 const verifyingMfa = ref(false)
 const enrollingMfa = ref(false)
+const roleOptions = ['admin', 'teacher', 'student']
+const initialRole = ref('')
+const currentUserId = ref(null)
+const isAdmin = ref(false)
+const adminMfaFactorId = ref(null)
+const showMfaDialog = ref(false)
+const verificationCode = ref('')
+const isRoleVerified = ref(false)
 
 const avatarUrl = computed(() => profile.value.avatar_url)
+
+const isEditingOther = computed(() => {
+    return route.query.userId && currentUserId.value && route.query.userId !== currentUserId.value
+})
 
 onMounted(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     
-    // Store current user email for permission checks
+    // Store current user ID for permission checks
+    currentUserId.value = user.id
     currentUserEmail.value = user.email
+
+    // Check if current user is admin
+    const { data: myProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (myProfile?.role === 'admin') {
+        isAdmin.value = true
+        
+        // Fetch Admin's MFA factors (for verification later)
+        const { data: factors } = await supabase.auth.mfa.listFactors()
+        if (factors && factors.totp.length > 0) {
+            const verifiedFactor = factors.totp.find(f => f.status === 'verified')
+            if (verifiedFactor) adminMfaFactorId.value = verifiedFactor.id
+        }
+    }
 
     // Check if we are editing another user (Admin only)
     const targetUserId = route.query.userId
     
     if (targetUserId) {
-         // Verify we are actually an admin before allowing this (Client-side check, RLS is real security)
-         const { data: myProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-         if (myProfile?.role === 'admin') {
-             getProfile(targetUserId)
+         if (isAdmin.value) {
+             getUserProfile(targetUserId)
+             return
+         } else {
+             $q.notify({ type: 'negative', message: 'Unauthorized access' })
              return
          }
     }
 
-    getProfile(user.id)
+    getUserProfile(user.id)
 })
 
-const getProfile = async () => {
-   const { data: { user } } = await supabase.auth.getUser()
-   if (!user) return
 
-   userEmail.value = user.email
-   
+
+const getUserProfile = async (userId) => { // Renamed from getProfile
    // Fetch from profiles table
    const { data } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single()
 
    if (data) {
        profile.value = data
+       initialRole.value = data.role // Store initial role
    }
    
-   // Check MFA Status
-   const { data: factors } = await supabase.auth.mfa.listFactors()
-   if (factors && factors.totp.length > 0) {
-       const verifiedFactor = factors.totp.find(f => f.status === 'verified')
-       if (verifiedFactor) isMfaEnabled.value = true
-   }
+   // Check MFA Status (Only if self)
+   if (!isEditingOther.value) {
+       const { data: factors } = await supabase.auth.mfa.listFactors()
+       if (factors && factors.totp.length > 0) {
+           const verifiedFactor = factors.totp.find(f => f.status === 'verified')
+           if (verifiedFactor) isMfaEnabled.value = true
+       }
 
-   // Auto-Show QR for Main Admin if not enabled
-   if (profile.value.is_super_admin && !isMfaEnabled.value) {
-       startMfaEnrollment()
+       // Auto-Show QR for Main Admin if not enabled
+       if (profile.value.is_super_admin && !isMfaEnabled.value) {
+           startMfaEnrollment()
+       }
    }
 }
 
@@ -372,6 +428,18 @@ const updateProfile = async () => {
 
     loading.value = true
     try {
+        // Check for Role Change
+        if (profile.value.role !== initialRole.value && !isRoleVerified.value) {
+            if (!adminMfaFactorId.value) {
+                $q.notify({ type: 'negative', message: 'You must enable 2FA on your admin account to change roles.' })
+                loading.value = false
+                return
+            }
+            showMfaDialog.value = true
+            loading.value = false
+            return
+        }
+
         // 1. Update Profile Data
         const { error } = await supabase
             .from('profiles')
@@ -379,7 +447,8 @@ const updateProfile = async () => {
                 full_name: profile.value.full_name,
                 phone: profile.value.phone,
                 bio: profile.value.bio,
-                security_pin: profile.value.security_pin
+                security_pin: profile.value.security_pin,
+                role: profile.value.role // Allow role update
             })
             .eq('id', profile.value.id)
 
@@ -414,6 +483,7 @@ const updateProfile = async () => {
         
         $q.notify({ type: 'positive', message: 'Profile updated successfully!' })
         
+        initialRole.value = profile.value.role // Update initial role to match new saved role
         newPassword.value = ''
         confirmPassword.value = ''
     } catch (err) {
@@ -421,6 +491,31 @@ const updateProfile = async () => {
         $q.notify({ type: 'negative', message: 'Error updating profile details' })
     } finally {
         loading.value = false
+        // Reset verified status after save attempt (success or fail)
+        if (isRoleVerified.value) isRoleVerified.value = false
+    }
+}
+
+const verifyAndProceed = async () => {
+    try {
+        const { error } = await supabase.auth.mfa.challengeAndVerify({
+            factorId: adminMfaFactorId.value,
+            code: verificationCode.value
+        })
+        
+        if (error) {
+            $q.notify({ type: 'negative', message: 'Invalid 2FA Code' })
+            return
+        }
+        
+        showMfaDialog.value = false
+        isRoleVerified.value = true
+        verificationCode.value = '' // Clear code
+        updateProfile() // Retry update
+        
+    } catch (err) {
+        console.error(err)
+        $q.notify({ type: 'negative', message: 'Verification failed' })
     }
 }
 </script>

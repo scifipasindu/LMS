@@ -102,6 +102,12 @@
             </q-item-section>
             <q-item-section>Classes</q-item-section>
           </q-item>
+          <q-item clickable v-ripple to="/dashboard/live-classes" active-class="active-item">
+            <q-item-section avatar>
+              <q-icon name="live_tv" />
+            </q-item-section>
+            <q-item-section>Live Classes</q-item-section>
+          </q-item>
           <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/subjects" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="menu_book" />
