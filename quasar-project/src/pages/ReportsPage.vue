@@ -206,6 +206,7 @@ const tab = ref('enrollments')
 const enrollDialog = ref(false)
 const enrolling = ref(false)
 const studentOptions = ref([])
+const currencySymbol = ref('Rs.') // Default
 const enrollForm = ref({
     student: null,
     course: null
@@ -230,7 +231,7 @@ const loadingPayments = ref(false)
 const paymentColumns = [
     { name: 'student', label: 'Student', align: 'left', field: r => r.profiles?.full_name, sortable: true },
     { name: 'course', label: 'Course', align: 'left', field: r => r.courses?.title, sortable: true },
-    { name: 'amount', label: 'Amount', align: 'right', field: 'amount', format: val => `$${val}`, sortable: true },
+    { name: 'amount', label: 'Amount', align: 'right', field: 'amount', format: val => `${currencySymbol.value} ${val}`, sortable: true },
     { name: 'date', label: 'Date', align: 'left', field: 'payment_date', format: val => date.formatDate(val, 'YYYY-MM-DD HH:mm'), sortable: true },
     { name: 'method', label: 'Method', align: 'center', field: 'method', sortable: true },
     { name: 'status', label: 'Status', align: 'center', field: 'status', sortable: true },
@@ -241,7 +242,20 @@ onMounted(async () => {
     fetchCourses()
     fetchEnrollments()
     fetchPayments()
+    fetchSettings()
 })
+
+const fetchSettings = async () => {
+   const { data } = await supabase
+     .from('system_settings')
+     .select('value')
+     .eq('key', 'config')
+     .single()
+   
+   if (data?.value?.general?.currency?.symbol) {
+       currencySymbol.value = data.value.general.currency.symbol
+   }
+}
 
 const fetchCourses = async () => {
     const { data } = await supabase.from('courses').select('id, title')

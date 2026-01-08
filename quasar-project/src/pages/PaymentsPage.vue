@@ -39,16 +39,48 @@
 </template>
 
 <script setup>
-import { ref } from 'vue' // core
+import { ref, onMounted } from 'vue'
+import { supabase } from 'boot/supabase'
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
+const currencySymbol = ref('Rs.') // Default
+const payments = ref([]) 
+
 const columns = [
   { name: 'date', label: 'Date', align: 'left', field: 'date', sortable: true },
   { name: 'description', label: 'Description', align: 'left', field: 'description' },
-  { name: 'amount', label: 'Amount', align: 'right', field: 'amount' },
+  { 
+      name: 'amount', 
+      label: 'Amount', 
+      align: 'right', 
+      field: 'amount',
+      format: (val) => `${currencySymbol.value} ${val}` 
+  },
   { name: 'status', label: 'Status', align: 'center', field: 'status' },
   { name: 'action', label: 'Invoice', align: 'center' }
 ]
 
-const payments = ref([]) // TODO: Connect to real payments data when available
+onMounted(async () => {
+    await fetchSettings()
+    // Mock Data for now
+    payments.value = [
+        { id: 1, date: '2023-10-01', description: 'October Tuition Fee', amount: '2500.00', status: 'Paid' },
+        { id: 2, date: '2023-11-01', description: 'November Tuition Fee', amount: '2500.00', status: 'Pending' }
+    ]
+})
+
+const fetchSettings = async () => {
+   const { data } = await supabase
+     .from('system_settings')
+     .select('value')
+     .eq('key', 'config')
+     .single()
+   
+   if (data?.value?.general?.currency?.symbol) {
+       currencySymbol.value = data.value.general.currency.symbol
+   }
+}
 </script>
 
 <style scoped>

@@ -165,6 +165,24 @@
                   rows="3"
                   :disable="!settings.general.maintenanceMode"
                 />
+
+              <h6 class="text-h6 q-my-sm q-mt-xl">Currency Settings</h6>
+              <div class="row q-col-gutter-sm">
+                 <div class="col-6">
+                    <q-input 
+                      dark filled v-model="settings.general.currency.symbol" 
+                      label="Currency Symbol" 
+                      hint="e.g. Rs., $, €"
+                    />
+                 </div>
+                 <div class="col-6">
+                    <q-input 
+                      dark filled v-model="settings.general.currency.code" 
+                      label="Currency Code" 
+                      hint="e.g. LKR, USD, EUR"
+                    />
+                 </div>
+              </div>
             </div>
           </div>
         </q-tab-panel>
@@ -416,7 +434,11 @@ const defaultSettings = {
     brandMode: 'both',
     maintenanceMode: false,
     maintenanceTitle: 'Under Maintenance',
-    maintenanceDescription: 'We are currently performing scheduled maintenance. Please check back later.'
+    maintenanceDescription: 'We are currently performing scheduled maintenance. Please check back later.',
+    currency: {
+       symbol: 'Rs.',
+       code: 'LKR'
+    }
   },
    home: {
       slider: { 
@@ -492,6 +514,11 @@ const fetchSettings = async () => {
        Object.assign(settings, data.value)
        // Reset ephemeral file objects to avoid type errors
        if (settings.general) { 
+         // Ensure currency object exists if missing from DB
+         if (!settings.general.currency) {
+             settings.general.currency = { symbol: 'Rs.', code: 'LKR' }
+         }
+
          settings.general.logoFile = null; 
          settings.general.logoFileLight = null; 
          settings.general.faviconFile = null; 

@@ -82,29 +82,31 @@
 
                   <q-separator :dark="$q.dark.isActive" class="q-my-lg" />
                   
-                  <h6 class="text-h6 text-weight-bold q-my-none">Security</h6>
-                  <p class="text-caption q-mb-md" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">Update your password (optional)</p>
+                  <template v-if="!isEditingOther">
+                    <h6 class="text-h6 text-weight-bold q-my-none">Security</h6>
+                    <p class="text-caption q-mb-md" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">Update your password (optional)</p>
 
-                 <div class="row q-col-gutter-md">
-                    <div class="col-12 col-md-6">
-                        <q-input 
-                          filled :dark="$q.dark.isActive" 
-                          v-model="newPassword" 
-                          label="New Password" 
-                          type="password"
-                          class="input-dynamic"
-                        />
+                    <div class="row q-col-gutter-md">
+                        <div class="col-12 col-md-6">
+                            <q-input 
+                            filled :dark="$q.dark.isActive" 
+                            v-model="newPassword" 
+                            label="New Password" 
+                            type="password"
+                            class="input-dynamic"
+                            />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <q-input 
+                            filled :dark="$q.dark.isActive" 
+                            v-model="confirmPassword" 
+                            label="Confirm Password" 
+                            type="password"
+                            class="input-dynamic"
+                            />
+                        </div>
                     </div>
-                    <div class="col-12 col-md-6">
-                        <q-input 
-                          filled :dark="$q.dark.isActive" 
-                          v-model="confirmPassword" 
-                          label="Confirm Password" 
-                          type="password"
-                          class="input-dynamic"
-                        />
-                    </div>
-                 </div>
+                  </template>
 
                  <!-- Security PIN -->
                  <div class="row q-col-gutter-md q-mt-md">
@@ -123,33 +125,35 @@
 
                  <q-separator :dark="$q.dark.isActive" class="q-my-lg" />
                  
-                 <h6 class="text-h6 text-weight-bold q-my-none text-accent">Two-Factor Authentication</h6>
-                 <p class="text-caption q-mb-md" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">Secure your account with TOTP (Authenticator App).</p>
-                 
-                 <div v-if="!isMfaEnabled">
-                     <q-btn v-if="!mfaData.id" label="Enable 2FA" color="accent" outline rounded icon="security" @click="startMfaEnrollment" :loading="enrollingMfa" />
-                     
-                     <div v-else class="q-pa-md bg-dark-glass rounded-borders">
-                        <div class="text-center q-mb-md">
-                            <img :src="mfaData.qrCodeUrl" style="border-radius: 10px; border: 4px solid white;">
-                            <div class="text-caption q-mt-sm text-grey">Scan this QR code with your Authenticator App</div>
-                        </div>
+                 <template v-if="!isEditingOther">
+                    <h6 class="text-h6 text-weight-bold q-my-none text-accent">Two-Factor Authentication</h6>
+                    <p class="text-caption q-mb-md" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">Secure your account with TOTP (Authenticator App).</p>
+                    
+                    <div v-if="!isMfaEnabled">
+                        <q-btn v-if="!mfaData.id" label="Enable 2FA" color="accent" outline rounded icon="security" @click="startMfaEnrollment" :loading="enrollingMfa" />
                         
-                        <div class="row items-center q-gutter-md">
-                            <q-input filled dense v-model="mfaCode" label="Enter Code" class="col" :dark="$q.dark.isActive" mask="######" />
-                            <q-btn label="Verify & Enable" color="positive" @click="verifyMfa" :loading="verifyingMfa" />
-                            <q-btn flat round icon="close" color="negative" @click="mfaData = {}" />
+                        <div v-else class="q-pa-md bg-dark-glass rounded-borders">
+                            <div class="text-center q-mb-md">
+                                <img :src="mfaData.qrCodeUrl" style="border-radius: 10px; border: 4px solid white;">
+                                <div class="text-caption q-mt-sm text-grey">Scan this QR code with your Authenticator App</div>
+                            </div>
+                            
+                            <div class="row items-center q-gutter-md">
+                                <q-input filled dense v-model="mfaCode" label="Enter Code" class="col" :dark="$q.dark.isActive" mask="######" />
+                                <q-btn label="Verify & Enable" color="positive" @click="verifyMfa" :loading="verifyingMfa" />
+                                <q-btn flat round icon="close" color="negative" @click="mfaData = {}" />
+                            </div>
                         </div>
-                     </div>
-                 </div>
-                 <div v-else>
-                     <q-banner class="bg-positive text-white rounded-borders">
-                         <template v-slot:avatar>
-                             <q-icon name="verified_user" />
-                         </template>
-                         Two-Factor Authentication is ENABLED. Your account is secure.
-                     </q-banner>
-                 </div>
+                    </div>
+                    <div v-else>
+                        <q-banner class="bg-positive text-white rounded-borders">
+                            <template v-slot:avatar>
+                                <q-icon name="verified_user" />
+                            </template>
+                            Two-Factor Authentication is ENABLED. Your account is secure.
+                        </q-banner>
+                    </div>
+                 </template>
 
                  <div class="row justify-end q-mt-xl">
                     <q-btn 
@@ -171,13 +175,16 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
 import QRCode from 'qrcode'
 
 const $q = useQuasar()
+const route = useRoute()
 const loading = ref(false)
 const userEmail = ref('')
+const currentUserEmail = ref('')
 const avatarFile = ref(null)
 
 const profile = ref({
@@ -188,6 +195,10 @@ const profile = ref({
     phone: '',
     bio: '',
     security_pin: ''
+})
+
+const isEditingOther = computed(() => {
+    return route.query.userId && currentUserEmail.value && profile.value.email !== currentUserEmail.value
 })
 
 const newPassword = ref('')
@@ -201,7 +212,25 @@ const enrollingMfa = ref(false)
 const avatarUrl = computed(() => profile.value.avatar_url)
 
 onMounted(async () => {
-    getProfile()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    
+    // Store current user email for permission checks
+    currentUserEmail.value = user.email
+
+    // Check if we are editing another user (Admin only)
+    const targetUserId = route.query.userId
+    
+    if (targetUserId) {
+         // Verify we are actually an admin before allowing this (Client-side check, RLS is real security)
+         const { data: myProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+         if (myProfile?.role === 'admin') {
+             getProfile(targetUserId)
+             return
+         }
+    }
+
+    getProfile(user.id)
 })
 
 const getProfile = async () => {
@@ -356,8 +385,8 @@ const updateProfile = async () => {
 
         if (error) throw error
 
-        // 2. Update Password if provided
-        if (newPassword.value) {
+        // 2. Update Password if provided (Only for self)
+        if (newPassword.value && !isEditingOther.value) {
             const { error: pwError } = await supabase.auth.updateUser({
                 password: newPassword.value
             })
@@ -369,7 +398,7 @@ const updateProfile = async () => {
             const currentRes = await supabase.auth.getUser()
             const currentEmail = currentRes.data.user?.email
             
-            if (userEmail.value !== currentEmail) {
+            if (userEmail.value !== currentEmail && !isEditingOther.value) {
                  const { error: emailError } = await supabase.auth.updateUser({
                      email: userEmail.value
                  })

@@ -48,7 +48,7 @@
                  <div class="text-h6 text-weight-bold">Next Payment</div>
                  <q-icon name="account_balance_wallet" size="2em" class="opacity-50" />
               </div>
-              <div class="text-h2 text-weight-bolder q-mt-md">${{ paymentDue }}</div>
+              <div class="text-h2 text-weight-bolder q-mt-md">{{ currencySymbol }} {{ paymentDue }}</div>
               <div class="text-caption opacity-70">Total Due</div>
              </q-card-section>
           </q-card>
@@ -165,8 +165,10 @@ const assignmentCount = ref(0)
 const paymentDue = ref(0)
 const courses = ref([])
 const schedule = ref([])
+const currencySymbol = ref('Rs.') // Default
 
 onMounted(async () => {
+  await fetchSettings()
   const { data: { user } } = await supabase.auth.getUser()
   if (user) {
       // Fetch Detailed Profile
@@ -190,6 +192,18 @@ onMounted(async () => {
       }
   }
 })
+
+const fetchSettings = async () => {
+   const { data } = await supabase
+     .from('system_settings')
+     .select('value')
+     .eq('key', 'config')
+     .single()
+   
+   if (data?.value?.general?.currency?.symbol) {
+       currencySymbol.value = data.value.general.currency.symbol
+   }
+}
 </script>
 
 <style scoped lang="scss">

@@ -142,12 +142,13 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
 
 const $q = useQuasar()
 const route = useRoute()
+const router = useRouter()
 const users = ref([])
 const loading = ref(false)
 const processing = ref(false)
@@ -164,7 +165,6 @@ const selectedUser = ref(null)
 const pinDialog = ref(false)
 const pinInput = ref('')
 const currentUserPin = ref('')
-const pendingDeleteId = ref(null)
 
 // Role Options computed based on permissions
 const roleOptions = computed(() => {
@@ -230,33 +230,43 @@ const fetchUsers = async () => {
 }
 
 // PIN VALIDATION LOGIC
-const confirmDelete = (row) => {
-    pendingDeleteId.value = row.id
+const pendingAction = ref(null)
+
+const confirmAction = (callback) => {
+    pendingAction.value = callback
     
     // Require PIN if current user has one set
     if (currentUserPin.value) {
         pinInput.value = ''
         pinDialog.value = true
     } else {
-        // Fallback or warning if no PIN set
-        $q.dialog({
-            title: 'Confirm Delete',
-            message: 'Are you sure? This cannot be undone.',
-            cancel: true,
-            persistent: true
-        }).onOk(() => {
-            deleteUser(row.id, true) // Pass true to skip confirm in deleteUser
-        })
+        // Direct execution if no PIN set
+        callback()
     }
 }
 
 const verifyPin = () => {
     if (pinInput.value === currentUserPin.value) {
         pinDialog.value = false
-        deleteUser(pendingDeleteId.value, true)
+        if (pendingAction.value) pendingAction.value()
+        pendingAction.value = null
     } else {
         $q.notify({ type: 'negative', message: 'Invalid PIN' })
     }
+}
+
+// 1. DELETE ACTION
+const confirmDelete = (row) => {
+    confirmAction(() => {
+        $q.dialog({
+            title: 'Confirm Delete',
+            message: 'Are you sure? This cannot be undone.',
+            cancel: true,
+            persistent: true
+        }).onOk(() => {
+            deleteUser(row.id, true) 
+        })
+    })
 }
 
 // Watch for route changes to re-fetch/re-filter
@@ -277,8 +287,15 @@ const getStatusColor = (status) => {
 }
 
 const editUser = (user) => {
-   selectedUser.value = { ...user }
-   editDialog.value = true
+    const openProfile = () => {
+        router.push({ path: '/dashboard/profile', query: { userId: user.id } })
+    }
+
+    if (user.role === 'admin') {
+        confirmAction(openProfile)
+    } else {
+        openProfile()
+    }
 }
 
 const resetPassword = async (user) => {
