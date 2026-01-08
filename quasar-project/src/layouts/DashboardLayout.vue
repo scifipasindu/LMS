@@ -108,19 +108,19 @@
             </q-item-section>
             <q-item-section>Live Classes</q-item-section>
           </q-item>
-          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/subjects" active-class="active-item">
+          <q-item v-if="isAdmin || isStaff" clickable v-ripple to="/dashboard/subjects" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="menu_book" />
             </q-item-section>
             <q-item-section>Subjects</q-item-section>
           </q-item>
-          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/institutes" active-class="active-item">
+          <q-item v-if="isAdmin || isStaff" clickable v-ripple to="/dashboard/institutes" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="domain" />
             </q-item-section>
             <q-item-section>Institutes</q-item-section>
           </q-item>
-          <q-item v-if="isAdmin" clickable v-ripple to="/admin/courses" active-class="active-item">
+          <q-item v-if="isAdmin || isStaff" clickable v-ripple to="/admin/courses" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="video_library" />
             </q-item-section>
@@ -151,15 +151,22 @@
           </q-item>
         </q-list>
 
-        <!-- USERS (Admin Only) -->
-        <div v-if="isAdmin">
+        <!-- USERS (Admin & Staff) -->
+        <div v-if="isAdmin || isStaff">
             <div class="text-caption text-grey-6 q-mb-sm q-ml-sm text-weight-bold text-uppercase">Users</div>
             <q-list class="q-gutter-y-xs q-mb-md">
-              <q-item clickable v-ripple to="/admin/users?role=admin" active-class="active-item">
+              <!-- Staff cannot see Admins list (security) -->
+                <q-item v-if="isAdmin" clickable v-ripple to="/admin/users?role=admin" active-class="active-item">
                 <q-item-section avatar>
                   <q-icon name="admin_panel_settings" />
                 </q-item-section>
                 <q-item-section>Admins</q-item-section>
+              </q-item>
+              <q-item v-if="isAdmin" clickable v-ripple to="/admin/users?role=staff" active-class="active-item">
+                <q-item-section avatar>
+                  <q-icon name="assignment_ind" />
+                </q-item-section>
+                <q-item-section>Staff</q-item-section>
               </q-item>
               <q-item clickable v-ripple to="/admin/users?role=teacher" active-class="active-item">
                 <q-item-section avatar>
@@ -255,6 +262,10 @@ const fetchSettings = async () => {
    }
 }
 
+const isStaff = ref(false)
+
+// ...
+
 const checkRole = async () => {
    const { data: { user } } = await supabase.auth.getUser()
    if (user) {
@@ -268,12 +279,16 @@ const checkRole = async () => {
            const roleMap = {
               'admin': 'Admin',
               'teacher': 'Instructor',
-              'student': 'Student'
+              'student': 'Student',
+              'staff': 'Staff'
            }
            userRole.value = roleMap[profile.role] || 'User'; userAvatar.value = profile.avatar_url;
            
            if (profile.role === 'admin') {
                isAdmin.value = true
+           }
+           if (profile.role === 'staff') {
+               isStaff.value = true
            }
        }
    }

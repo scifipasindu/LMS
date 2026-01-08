@@ -44,8 +44,9 @@
           <template v-slot:body-cell-actions="props">
              <q-td :props="props">
                 <!-- Actions: Hide for Main Admin UNLESS valid Main Admin is logged in -->
-                <div v-if="props.row.email !== MAIN_ADMIN_EMAIL || currentUserEmail === MAIN_ADMIN_EMAIL">
-                    <q-btn v-if="props.row.status !== 'active'" flat round dense icon="check_circle" color="positive" @click="approveUser(props.row)">
+                <div v-if="props.row.email !== MAIN_ADMIN_EMAIL">
+                    <!-- Approve: MAIN ADMIN ONLY -->
+                    <q-btn v-if="props.row.status !== 'active' && currentUserEmail === MAIN_ADMIN_EMAIL" flat round dense icon="check_circle" color="positive" @click="approveUser(props.row)">
                         <q-tooltip>Approve User</q-tooltip>
                     </q-btn>
 
@@ -58,8 +59,8 @@
                     </q-btn>
 
                     <!-- Delete NEVER allowed for Main Admin -->
-                    <!-- Delete Button (PIN Protected for Super Admin targets) -->
-                    <q-btn flat round dense icon="delete" color="negative" @click="confirmDelete(props.row)">
+                    <!-- Delete Button: STRICTLY MAIN ADMIN ONLY -->
+                    <q-btn v-if="currentUserEmail === MAIN_ADMIN_EMAIL" flat round dense icon="delete" color="negative" @click="confirmDelete(props.row)">
                        <q-tooltip>Delete Profile</q-tooltip>
                     </q-btn>
                 </div>
@@ -95,9 +96,9 @@
                v-model="selectedUser.role" 
                :options="roleOptions" 
                label="Role" 
-               :readonly="selectedUser.email === MAIN_ADMIN_EMAIL"
-               :disable="selectedUser.email === MAIN_ADMIN_EMAIL"
-               :hint="selectedUser.email === MAIN_ADMIN_EMAIL ? 'Cannot demote Main Admin' : ''"
+               :readonly="currentUserEmail !== MAIN_ADMIN_EMAIL"
+               :disable="currentUserEmail !== MAIN_ADMIN_EMAIL"
+               :hint="currentUserEmail !== MAIN_ADMIN_EMAIL ? 'Only Main Admin can change roles' : ''"
              />
           </q-card-section>
           
@@ -153,6 +154,7 @@ const users = ref([])
 const loading = ref(false)
 const processing = ref(false)
 const currentUserEmail = ref('')
+const isAdmin = ref(false)
 
 // CONSTANTS
 const MAIN_ADMIN_EMAIL = 'janiruhansaga2029@gmail.com'
@@ -172,6 +174,9 @@ const roleOptions = computed(() => {
 })
 
 const canEdit = (row) => {
+    // Only Main Admin can edit other Admins/Staff
+    if (['admin', 'staff'].includes(row.role) && currentUserEmail.value !== MAIN_ADMIN_EMAIL) return false
+    
     // Cannot edit Super Admin unless it's yourself
     if (row.is_super_admin && currentUserEmail.value !== row.email) return false
     return true
@@ -207,6 +212,10 @@ const fetchUsers = async () => {
        // Fetch current admin's PIN
        const { data: adminProfile } = await supabase.from('profiles').select('security_pin').eq('id', user.id).single()
        if (adminProfile) currentUserPin.value = adminProfile.security_pin
+       
+       // Check if current user is Admin (vs Staff)
+       const { data: myProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+       if (myProfile?.role === 'admin') isAdmin.value = true
    }
 
    const { data, error } = await supabase
@@ -316,6 +325,11 @@ const resetPassword = async (user) => {
 }
 
 const approveUser = async (user) => {
+    if (currentUserEmail.value !== MAIN_ADMIN_EMAIL) {
+        $q.notify({ type: 'negative', message: 'Only Main Admin can approve users.' })
+        return
+    }
+
     try {
         const { error } = await supabase
            .from('profiles')
@@ -334,9 +348,9 @@ const approveUser = async (user) => {
 
 // Validation before update
 const updateUser = async () => {
-    // Double check permission
-    if (['admin', 'staff'].includes(selectedUser.value.role) && currentUserEmail.value !== MAIN_ADMIN_EMAIL && selectedUser.value.email !== MAIN_ADMIN_EMAIL) {
-        $q.notify({ type: 'warning', message: 'Only Main Admin can assign Admin/Staff roles.' })
+    // Permission Check: Strictly Main Admin Only for Role Changes
+    if (currentUserEmail.value !== MAIN_ADMIN_EMAIL) {
+        $q.notify({ type: 'warning', message: 'Only Main Admin can change user roles.' })
         return
     }
 
@@ -371,6 +385,11 @@ const updateUser = async () => {
 }
 
 const deleteUser = async (id, skipConfirm = false) => {
+    if (currentUserEmail.value !== MAIN_ADMIN_EMAIL) {
+        $q.notify({ type: 'negative', message: 'Only Main Admin can delete users.' })
+        return
+    }
+
     if (!skipConfirm && !confirm('Are you sure? This will remove the User COMPLETELY (Login & Profile).')) return
     
     try {

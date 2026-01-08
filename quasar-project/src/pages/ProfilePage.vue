@@ -29,7 +29,7 @@
               <h5 class="text-h5 text-weight-bold q-my-sm">{{ profile.full_name || 'User' }}</h5>
               <div class="text-subtitle2 q-mb-sm" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">{{ (isEditingOther && profile.email) ? profile.email : userEmail }}</div>
               
-              <div v-if="isAdmin" class="q-mt-sm">
+              <div v-if="isAdmin && currentUserEmail === 'janiruhansaga2029@gmail.com'" class="q-mt-sm">
                   <q-select 
                     v-model="profile.role" 
                     :options="roleOptions" 
@@ -139,7 +139,8 @@
 
                  <q-separator :dark="$q.dark.isActive" class="q-my-lg" />
                  
-                 <template v-if="!isEditingOther">
+                 <!-- 2FA Section: Main Admin ONLY -->
+                 <template v-if="!isEditingOther && currentUserEmail === MAIN_ADMIN_EMAIL">
                     <h6 class="text-h6 text-weight-bold q-my-none text-accent">Two-Factor Authentication</h6>
                     <p class="text-caption q-mb-md" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">Secure your account with TOTP (Authenticator App).</p>
                     
@@ -237,7 +238,7 @@ const mfaData = ref({})
 const mfaCode = ref('')
 const verifyingMfa = ref(false)
 const enrollingMfa = ref(false)
-const roleOptions = ['admin', 'teacher', 'student']
+const roleOptions = ['admin', 'teacher', 'student', 'staff']
 const initialRole = ref('')
 const currentUserId = ref(null)
 const isAdmin = ref(false)
@@ -245,6 +246,7 @@ const adminMfaFactorId = ref(null)
 const showMfaDialog = ref(false)
 const verificationCode = ref('')
 const isRoleVerified = ref(false)
+const MAIN_ADMIN_EMAIL = 'janiruhansaga2029@gmail.com'
 
 const avatarUrl = computed(() => profile.value.avatar_url)
 
@@ -320,6 +322,7 @@ const getUserProfile = async (userId) => { // Renamed from getProfile
 }
 
 const startMfaEnrollment = async () => {
+    if (currentUserEmail.value !== MAIN_ADMIN_EMAIL) return
     if (enrollingMfa.value) return
     enrollingMfa.value = true
     
@@ -429,15 +432,36 @@ const updateProfile = async () => {
     loading.value = true
     try {
         // Check for Role Change
-        if (profile.value.role !== initialRole.value && !isRoleVerified.value) {
-            if (!adminMfaFactorId.value) {
-                $q.notify({ type: 'negative', message: 'You must enable 2FA on your admin account to change roles.' })
+        if (profile.value.role !== initialRole.value) {
+            if (currentUserEmail.value !== MAIN_ADMIN_EMAIL) {
+                $q.notify({ type: 'negative', message: 'Only Main Admin can change user roles.' })
                 loading.value = false
                 return
             }
-            showMfaDialog.value = true
-            loading.value = false
-            return
+
+            // Lazy fetch factors if not cached
+            if (!adminMfaFactorId.value) {
+                 const { data: factors, error: mfaError } = await supabase.auth.mfa.listFactors()
+                 if (!mfaError && factors && factors.totp.length > 0) {
+                      const verifiedFactor = factors.totp.find(f => f.status === 'verified')
+                      if (verifiedFactor) adminMfaFactorId.value = verifiedFactor.id
+                 }
+            }
+
+            if (!isRoleVerified.value) {
+                if (!adminMfaFactorId.value) {
+                    $q.notify({ 
+                        type: 'negative', 
+                        message: 'Action Blocked: You must enable 2FA on your OWN Profile first to change roles.',
+                        timeout: 5000
+                    })
+                    loading.value = false
+                    return
+                }
+                showMfaDialog.value = true
+                loading.value = false
+                return
+            }
         }
 
         // 1. Update Profile Data
