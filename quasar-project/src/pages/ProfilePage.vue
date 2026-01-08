@@ -127,7 +127,7 @@
                  <p class="text-caption q-mb-md" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">Secure your account with TOTP (Authenticator App).</p>
                  
                  <div v-if="!isMfaEnabled">
-                     <q-btn v-if="!mfaData.secret" label="Enable 2FA" color="accent" outline rounded icon="security" @click="startMfaEnrollment" />
+                     <q-btn v-if="!mfaData.id" label="Enable 2FA" color="accent" outline rounded icon="security" @click="startMfaEnrollment" :loading="enrollingMfa" />
                      
                      <div v-else class="q-pa-md bg-dark-glass rounded-borders">
                         <div class="text-center q-mb-md">
@@ -196,6 +196,7 @@ const isMfaEnabled = ref(false)
 const mfaData = ref({})
 const mfaCode = ref('')
 const verifyingMfa = ref(false)
+const enrollingMfa = ref(false)
 
 const avatarUrl = computed(() => profile.value.avatar_url)
 
@@ -234,23 +235,30 @@ const getProfile = async () => {
 }
 
 const startMfaEnrollment = async () => {
+    if (enrollingMfa.value) return
+    enrollingMfa.value = true
+    
     try {
         // 1. Clean up stale/unverified factors to prevent collisions
         const { data: factors } = await supabase.auth.mfa.listFactors()
         if (factors && factors.totp.length > 0) {
-            // Remove ANY unverified factors OR factors with same name 'OnlineClass' that might be stuck
-            const staleFactors = factors.totp.filter(f => f.status === 'unverified' || f.friendly_name === 'OnlineClass')
+            // Remove ANY unverified factors OR factors starting with 'OnlineClass' (including previous timestamped ones)
+            const staleFactors = factors.totp.filter(f => 
+                f.status === 'unverified' || 
+                f.friendly_name?.startsWith('OnlineClass')
+            )
             
             for (const factor of staleFactors) {
-                // Ignore errors during cleanup (best effort)
-                await supabase.auth.mfa.unenroll({ factorId: factor.id }).catch(() => {})
+                // Ignore errors during cleanup (best effort against race conditions)
+                await supabase.auth.mfa.unenroll({ factorId: factor.id }).catch((e) => console.warn('Cleanup failed for ' + factor.id, e))
             }
         }
 
         // 2. Start new enrollment with unique Friendly Name
+        const uniqueName = `OnlineClass (${Date.now()})`
         const { data, error } = await supabase.auth.mfa.enroll({
             factorType: 'totp',
-            friendlyName: `OnlineClass (${new Date().toLocaleTimeString()})`
+            friendlyName: uniqueName
         })
         if (error) throw error
         
@@ -260,12 +268,14 @@ const startMfaEnrollment = async () => {
             id: data.id,
             type: data.type,
             totp_url: data.totp.uri,
-            secret: data.secret,
+            secret: data.totp.secret,
             qrCodeUrl: qrCodeUrl
         }
     } catch (err) {
         console.error(err)
         $q.notify({ type: 'negative', message: 'Failed to start enrollment: ' + err.message })
+    } finally {
+        enrollingMfa.value = false
     }
 }
 
