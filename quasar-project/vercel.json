@@ -4,5 +4,6 @@
             "source": "/:match*",
             "destination": "/index.html"
         }
+    ],
     "outputDirectory": "dist/spa"
 }
