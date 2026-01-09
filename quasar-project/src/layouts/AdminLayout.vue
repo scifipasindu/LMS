@@ -49,6 +49,12 @@
             </q-item-section>
             <q-item-section>Classes</q-item-section>
           </q-item>
+          <q-item clickable v-ripple to="/dashboard/live-classes" active-class="active-item">
+            <q-item-section avatar>
+              <q-icon name="live_tv" />
+            </q-item-section>
+            <q-item-section>Live Classes</q-item-section>
+          </q-item>
           <q-item clickable v-ripple to="/dashboard/subjects" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="menu_book" />
@@ -100,6 +106,12 @@
               <q-icon name="admin_panel_settings" />
             </q-item-section>
             <q-item-section>Admins</q-item-section>
+          </q-item>
+          <q-item clickable v-ripple to="/admin/users?role=staff" active-class="active-item">
+            <q-item-section avatar>
+              <q-icon name="assignment_ind" />
+            </q-item-section>
+            <q-item-section>Staff</q-item-section>
           </q-item>
           <q-item clickable v-ripple to="/admin/users?role=teacher" active-class="active-item">
             <q-item-section avatar>

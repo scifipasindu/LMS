@@ -2,6 +2,6 @@
     "deno.enablePaths": [
         "quasar-project/supabase/functions"
     ],
-    "deno.unstable": true,
+    "deno.unstable": [],
     "deno.path": "C:\\Users\\pasin\\.deno\\bin\\deno.exe"
 }
