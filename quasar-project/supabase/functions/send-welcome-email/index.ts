@@ -34,7 +34,7 @@ const handler = async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "OnlineClass <admin@onlineclass.edu.lk>", 
+        from: "OnlineClass <admin@janiru.online>", 
         to: [email],
         subject: "Welcome to OnlineClass!",
         html: `
@@ -45,92 +45,108 @@ const handler = async (req: Request): Promise<Response> => {
             <style>
                 body {
                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    background-color: #121212;
-                    color: #ffffff;
+                    background-color: #f4f4f4;
+                    color: #333333;
                     margin: 0;
                     padding: 0;
                 }
                 .container {
                     width: 100%;
                     max-width: 600px;
-                    margin: 0 auto;
-                    background-color: #1e1e1e;
+                    margin: 20px auto;
+                    background-color: #ffffff;
                     border-radius: 16px;
                     overflow: hidden;
-                    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+                    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+                    border: 1px solid #eaeaea;
                 }
                 .header {
-                    background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
-                    padding: 30px;
+                    background-color: #ffffff;
+                    padding: 40px 20px 20px 20px;
                     text-align: center;
+                    border-bottom: 3px solid #7b2cbf;
+                }
+                .logo {
+                    width: 180px;
+                    height: auto;
+                    margin-bottom: 10px;
                 }
                 .header h1 {
-                    margin: 0;
-                    color: #000;
-                    font-size: 28px;
-                    font-weight: 800;
+                    display: none; /* Logo contains text usually, or remove this line to show text below logo */
                 }
                 .content {
                     padding: 40px;
                     text-align: center;
+                    background-color: #ffffff;
                 }
                 .welcome-text {
                     font-size: 20px;
                     margin-bottom: 20px;
-                    color: #E0E0E0;
+                    color: #4a4a4a;
+                    font-weight: 500;
+                }
+                h2 {
+                    color: #7b2cbf;
+                    margin-bottom: 15px;
+                    font-size: 24px;
                 }
                 .role-badge {
                     display: inline-block;
-                    background-color: rgba(255, 215, 0, 0.15);
-                    color: #FFD700;
+                    background-color: #f3e5f5;
+                    color: #7b2cbf;
                     padding: 8px 16px;
                     border-radius: 50px;
                     font-weight: 600;
                     margin-bottom: 30px;
                     text-transform: capitalize;
-                    border: 1px solid rgba(255, 215, 0, 0.3);
+                    border: 1px solid #e1bee7;
                 }
                 .button {
                     display: inline-block;
-                    background: linear-gradient(90deg, #FFD700 0%, #FF8C00 100%);
-                    color: #000000;
-                    padding: 14px 32px;
+                    background: linear-gradient(90deg, #9d4edd 0%, #7b2cbf 100%);
+                    color: #ffffff;
+                    padding: 14px 40px;
                     border-radius: 50px;
                     text-decoration: none;
                     font-weight: bold;
                     font-size: 16px;
                     margin-top: 20px;
                     transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(123, 44, 191, 0.4);
+                }
+                .button:hover {
+                    box-shadow: 0 6px 20px rgba(123, 44, 191, 0.6);
+                    transform: translateY(-2px);
                 }
                 .footer {
-                    background-color: #121212;
+                    background-color: #fafafa;
                     padding: 20px;
                     text-align: center;
                     font-size: 12px;
-                    color: #666;
-                    border-top: 1px solid #333;
+                    color: #888;
+                    border-top: 1px solid #eaeaea;
                 }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>OnlineClass</h1>
+                    <img src="https://janiru.online/icons/logo-purple.png" alt="OnlineClass" class="logo">
                 </div>
                 <div class="content">
-                    <h2 style="color: #fff; margin-bottom: 10px;">Registration Successful!</h2>
+                    <h2>Registration Successful!</h2>
                     <p class="welcome-text">Hi ${name}, welcome to the future of learning.</p>
                     
                     <div class="role-badge">
                         Registered as ${role}
                     </div>
                     
-                    <p style="color: #bbb; line-height: 1.6; margin-bottom: 30px;">
-                        Your account has been successfully created. You can now access your dashboard, 
-                        explore courses, and start your journey with us.
+                    <p style="color: #666; line-height: 1.6; margin-bottom: 30px;">
+                        Your account has been successfully approved by our administrators. <br>
+                        You can now access your dashboard, explore courses, and start learning.
                     </p>
                     
-                    <a href="https://onlineclass.edu.lk/login" class="button">Go to Dashboard</a>
+                    <a href="https://janiru.online/login" class="button">Go to Dashboard</a>
                 </div>
                 <div class="footer">
                     &copy; ${new Date().getFullYear()} OnlineClass.edu.lk. All rights reserved.
@@ -143,6 +159,13 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     const data = await res.json();
+    console.log("Resend Response:", JSON.stringify(data));
+    
+    if (!res.ok) {
+        console.error("Resend Error:", data);
+        return new Response(JSON.stringify(data), { status: res.status, headers: { "Content-Type": "application/json" } });
+    }
+
     return new Response(JSON.stringify(data), {
       headers: { "Content-Type": "application/json" },
     });
