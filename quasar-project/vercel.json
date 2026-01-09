@@ -1,9 +1,8 @@
 {
     "rewrites": [
         {
-            "source": "/:match*",
+            "source": "/(.*)",
             "destination": "/index.html"
         }
-    ],
-    "outputDirectory": "dist/spa"
+    ]
 }
