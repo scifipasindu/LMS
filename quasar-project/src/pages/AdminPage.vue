@@ -405,7 +405,8 @@ const deleteUser = async (id, skipConfirm = false) => {
         users.value = users.value.filter(u => u.id !== id)
         
         // Then re-fetch to strict sync
-        fetchUsers()
+        // fetchUsers() - REMOVED to prevent UI glitch where user reappears briefly
+
     } catch (err) {
         console.error(err)
         $q.notify({ type: 'negative', message: 'Failed to delete user: ' + err.message })

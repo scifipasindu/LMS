@@ -204,6 +204,34 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Security PIN Verification Dialog -->
+    <q-dialog v-model="pinDialog" persistent>
+        <q-card style="min-width: 300px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
+            <q-card-section>
+                <div class="text-h6 text-negative">Security Check</div>
+                <div class="text-caption">Enter your CURRENT Security PIN to allow changes.</div>
+            </q-card-section>
+            
+            <q-card-section>
+                <q-input 
+                    v-model="pinInput" 
+                    dense filled 
+                    :dark="$q.dark.isActive" 
+                    label="Current PIN" 
+                    mask="######" 
+                    type="password" 
+                    autofocus
+                    @keyup.enter="verifyPinAndSave"
+                />
+            </q-card-section>
+
+            <q-card-actions align="right">
+                <q-btn flat label="Cancel" v-close-popup />
+                <q-btn flat label="Verify & Save" color="negative" @click="verifyPinAndSave" :disable="pinInput.length !== 6" />
+            </q-card-actions>
+        </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -231,6 +259,8 @@ const profile = ref({
     security_pin: ''
 })
 
+const initialPin = ref('') // Track initial PIN state
+
 const newPassword = ref('')
 const confirmPassword = ref('')
 const isMfaEnabled = ref(false)
@@ -247,6 +277,10 @@ const showMfaDialog = ref(false)
 const verificationCode = ref('')
 const isRoleVerified = ref(false)
 const MAIN_ADMIN_EMAIL = 'janiruhansaga2029@gmail.com'
+
+// PIN Verification State
+const pinDialog = ref(false)
+const pinInput = ref('')
 
 const avatarUrl = computed(() => profile.value.avatar_url)
 
@@ -304,6 +338,7 @@ const getUserProfile = async (userId) => { // Renamed from getProfile
    if (data) {
        profile.value = data
        initialRole.value = data.role // Store initial role
+       initialPin.value = data.security_pin // Store initial PIN
    }
    
    // Check MFA Status (Only if self)
@@ -429,6 +464,16 @@ const updateProfile = async () => {
         return
     }
 
+    // Check for Security PIN Change - Require Verification of OLD PIN
+    if (profile.value.security_pin !== initialPin.value && initialPin.value) {
+        // If changing PIN and an OLD PIN exists, require verification
+        if (!pinDialog.value) {
+            pinDialog.value = true
+            return
+        }
+    }
+
+
     loading.value = true
     try {
         // Check for Role Change
@@ -542,6 +587,19 @@ const verifyAndProceed = async () => {
         $q.notify({ type: 'negative', message: 'Verification failed' })
     }
 }
+
+const verifyPinAndSave = () => {
+    if (pinInput.value === initialPin.value) {
+        pinDialog.value = false
+        pinInput.value = '' 
+        // Proceed with update; pinDialog is now false, so the check will pass
+        updateProfile() 
+    } else {
+        $q.notify({ type: 'negative', message: 'Invalid Current PIN' })
+    }
+}
+
+
 </script>
 
 <style scoped lang="scss">
