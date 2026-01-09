@@ -101,7 +101,8 @@ const password = ref('')
 const isPwd = ref(true)
 const rememberMe = ref(false)
 const loading = ref(false)
-const selectedRole = ref('student') // Default to Student
+const selectedRole = ref('student')
+
 
 const logoSettings = ref({ dark: '', light: '' })
 const currentLogo = ref('')
@@ -154,17 +155,10 @@ const handleLogin = async () => {
 
     // Authorization Check
     const role = profile?.role?.toLowerCase() || 'student'
-    const targetRole = selectedRole.value.toLowerCase()
-
-    if (role !== targetRole) {
-        // Validation Failed: Role mismatch
-        await supabase.auth.signOut() 
-        throw new Error(`Access Denied: You are not authorized as a ${selectedRole.value}. Your role is: ${profile?.role || 'Unknown'}`)
-    }
 
     $q.notify({
       type: 'positive',
-      message: `Welcome back, ${profile?.role}!`,
+      message: `Welcome back!`,
       position: 'top'
     })
     
