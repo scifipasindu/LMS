@@ -153,6 +153,7 @@ const router = useRouter()
 const users = ref([])
 const loading = ref(false)
 const processing = ref(false)
+const currentUserRole = ref('')
 const currentUserEmail = ref('')
 const isAdmin = ref(false)
 
@@ -174,11 +175,27 @@ const roleOptions = computed(() => {
 })
 
 const canEdit = (row) => {
+    const targetRole = row.role || 'student'
+
+    // 1. Staff Permissions
+    if (currentUserRole.value === 'staff') {
+        // Staff can ONLY edit Instructors (and maybe themselves, but let's stick to request)
+        if (targetRole === 'teacher') return true
+        
+        // Staff CANNOT edit Students
+        if (targetRole === 'student') return false
+
+        // Staff CANNOT edit Admins or other Staff (unless self, handled below usually)
+        if (['admin', 'staff'].includes(targetRole)) return false
+    }
+
+    // 2. Main Admin / Admin Logic
     // Only Main Admin can edit other Admins/Staff
-    if (['admin', 'staff'].includes(row.role) && currentUserEmail.value !== MAIN_ADMIN_EMAIL) return false
+    if (['admin', 'staff'].includes(targetRole) && currentUserEmail.value !== MAIN_ADMIN_EMAIL) return false
     
     // Cannot edit Super Admin unless it's yourself
     if (row.is_super_admin && currentUserEmail.value !== row.email) return false
+    
     return true
 }
 
@@ -210,15 +227,16 @@ const fetchUsers = async () => {
    if (user) {
        currentUserEmail.value = user.email
        // Fetch current admin's PIN
-       const { data: adminProfile } = await supabase.from('profiles').select('security_pin').eq('id', user.id).single()
-       if (adminProfile) currentUserPin.value = adminProfile.security_pin
-       
-       // Check if current user is Admin (vs Staff)
-       const { data: myProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-       if (myProfile?.role === 'admin') isAdmin.value = true
+       const { data: adminProfile } = await supabase.from('profiles').select('security_pin, role').eq('id', user.id).single()
+       if (adminProfile) {
+           currentUserPin.value = adminProfile.security_pin
+           currentUserRole.value = adminProfile.role
+           if (adminProfile.role === 'admin') isAdmin.value = true
+       }
    }
 
    const { data, error } = await supabase
+
       .from('profiles')
       .select('id, full_name, role, email, status, updated_at, created_at, is_super_admin')
       .order('created_at', { ascending: false })
@@ -229,8 +247,11 @@ const fetchUsers = async () => {
    } else {
        // Filter client-side if a specific role is requested
        const roleFilter = route.query.role
-       if (roleFilter) {
-           users.value = data.filter(u => u.role === roleFilter)
+        if (roleFilter) {
+           users.value = data.filter(u => {
+               const r = u.role || 'student'
+               return r === roleFilter
+           })
        } else {
            users.value = data
        }

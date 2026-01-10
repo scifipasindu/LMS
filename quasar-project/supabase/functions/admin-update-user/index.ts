@@ -1,5 +1,5 @@
 
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { createClient } from '@supabase/supabase-js'
 
 Deno.serve(async (req) => {
     // CORS Headers
@@ -59,7 +59,11 @@ Deno.serve(async (req) => {
         }
 
         // 3. Update Auth User (Email/Password)
-        const authUpdates: any = {}
+        const authUpdates: {
+            email?: string;
+            password?: string;
+            user_metadata?: { full_name?: string; role?: string };
+        } = {}
         if (email) authUpdates.email = email
         if (password) {
             console.log(`Updating password for user ${id} (Length: ${password.length})`)
@@ -76,7 +80,7 @@ Deno.serve(async (req) => {
         }
 
         // 4. Update Profile
-        const profileUpdates: any = {}
+        const profileUpdates: Record<string, string> = {}
         if (full_name) profileUpdates.full_name = full_name
         if (role) profileUpdates.role = role
         // Note: 'email' is in profiles now? Yes, we added it.
@@ -96,8 +100,9 @@ Deno.serve(async (req) => {
             status: 200,
         })
 
-    } catch (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        return new Response(JSON.stringify({ error: errorMessage }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 400,
         })

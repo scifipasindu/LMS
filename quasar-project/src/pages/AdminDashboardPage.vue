@@ -28,6 +28,10 @@
           </q-card>
        </div>
     </div>
+
+    <div class="q-mt-xl">
+        <AnnouncementsSection />
+    </div>
     
     <div class="row q-mt-xl">
        <div class="col-12">
@@ -38,6 +42,10 @@
     </div>
   </q-page>
 </template>
+
+<script setup>
+import AnnouncementsSection from 'components/AnnouncementsSection.vue'
+</script>
 
 <style scoped>
 .bg-dark-card { background: #121212; border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; }

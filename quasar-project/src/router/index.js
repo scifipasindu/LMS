@@ -50,7 +50,12 @@ export default defineRouter(function (/* { store, ssrContext } */) {
           .eq('id', user.id)
           .single()
 
-        if (profile?.role !== requiredRole) {
+        const userRole = profile?.role
+        const allowed = Array.isArray(requiredRole) 
+            ? requiredRole.includes(userRole) 
+            : userRole === requiredRole
+
+        if (!allowed) {
           next('/dashboard') // Access Denied
           return
         }

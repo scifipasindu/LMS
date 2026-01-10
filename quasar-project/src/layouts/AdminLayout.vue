@@ -26,13 +26,13 @@
             </q-item-section>
             <q-item-section>Dashboard</q-item-section>
           </q-item>
-          <q-item clickable v-ripple to="/dashboard/pages" active-class="active-item">
+          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/pages" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="article" />
             </q-item-section>
             <q-item-section>Pages</q-item-section>
           </q-item>
-          <q-item clickable v-ripple to="/dashboard/guides" active-class="active-item">
+          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/guides" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="help_outline" />
             </q-item-section>
@@ -78,7 +78,7 @@
         <!-- MANAGEMENT -->
         <div class="text-caption text-grey-6 q-mb-sm q-ml-sm text-weight-bold text-uppercase">Management</div>
         <q-list class="q-gutter-y-xs q-mb-md">
-          <q-item clickable v-ripple to="/dashboard/reports" active-class="active-item">
+          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/reports" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="bar_chart" />
             </q-item-section>
@@ -90,7 +90,7 @@
             </q-item-section>
             <q-item-section>Payments</q-item-section>
           </q-item>
-          <q-item clickable v-ripple to="/dashboard/permissions" active-class="active-item">
+          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/permissions" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="lock" />
             </q-item-section>
@@ -101,13 +101,13 @@
         <!-- USERS -->
         <div class="text-caption text-grey-6 q-mb-sm q-ml-sm text-weight-bold text-uppercase">Users</div>
         <q-list class="q-gutter-y-xs q-mb-md">
-          <q-item clickable v-ripple to="/admin/users?role=admin" active-class="active-item">
+          <q-item v-if="isAdmin" clickable v-ripple to="/admin/users?role=admin" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="admin_panel_settings" />
             </q-item-section>
             <q-item-section>Admins</q-item-section>
           </q-item>
-          <q-item clickable v-ripple to="/admin/users?role=staff" active-class="active-item">
+          <q-item v-if="isAdmin" clickable v-ripple to="/admin/users?role=staff" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="assignment_ind" />
             </q-item-section>
@@ -130,7 +130,7 @@
         <!-- CONFIG -->
         <div class="text-caption text-grey-6 q-mb-sm q-ml-sm text-weight-bold text-uppercase">Config</div>
         <q-list class="q-gutter-y-xs">
-          <q-item clickable v-ripple to="/dashboard/settings" active-class="active-item">
+          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/settings" active-class="active-item">
             <q-item-section avatar>
               <q-icon name="settings" />
             </q-item-section>
@@ -153,23 +153,33 @@ import { useQuasar } from 'quasar'
 
 const $q = useQuasar()
 const leftDrawerOpen = ref(true)
+const isAdmin = ref(false)
+const isStaff = ref(false)
 
 const logoSettings = ref({ dark: '', light: '' })
 const currentLogo = ref('')
 
-// Toggle function removed
-
 // Watch for theme changes or settings load
 watch([() => $q.dark.isActive, logoSettings], () => {
    const isDark = $q.dark.isActive
-   // In Admin Layout, if we enforce dark mode, we might want to force dark logo. 
-   // But let's support theming since we are fixing it.
    currentLogo.value = isDark ? logoSettings.value.dark : (logoSettings.value.light || logoSettings.value.dark)
 }, { deep: true, immediate: true })
 
 onMounted(async () => {
+   await checkRole()
    await fetchSettings()
 })
+
+const checkRole = async () => {
+   const { data: { user } } = await supabase.auth.getUser()
+   if (user) {
+       const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+       if (profile) {
+           if (profile.role === 'admin') isAdmin.value = true
+           if (profile.role === 'staff') isStaff.value = true
+       }
+   }
+}
 
 const fetchSettings = async () => {
    const { data } = await supabase

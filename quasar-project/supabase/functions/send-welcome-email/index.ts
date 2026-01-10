@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "std/http/server.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
@@ -92,30 +92,33 @@ const handler = async (req: Request): Promise<Response> => {
                 }
                 .role-badge {
                     display: inline-block;
-                    background-color: #f3e5f5;
-                    color: #7b2cbf;
-                    padding: 8px 16px;
-                    border-radius: 50px;
+                    background-color: #ffffff;
+                    color: #8e24aa;
+                    padding: 12px 24px;
+                    border-radius: 8px;
                     font-weight: 600;
                     margin-bottom: 30px;
                     text-transform: capitalize;
-                    border: 1px solid #e1bee7;
+                    border: 1px solid #8e24aa;
+                    font-size: 14px;
                 }
                 .button {
                     display: inline-block;
-                    background: linear-gradient(90deg, #9d4edd 0%, #7b2cbf 100%);
+                    background-color: #8e24aa;
                     color: #ffffff;
                     padding: 14px 40px;
-                    border-radius: 50px;
+                    border-radius: 8px;
                     text-decoration: none;
                     font-weight: bold;
                     font-size: 16px;
                     margin-top: 20px;
                     transition: all 0.3s ease;
-                    box-shadow: 0 4px 15px rgba(123, 44, 191, 0.4);
+                    box-shadow: 0 4px 6px rgba(142, 36, 170, 0.2);
+                    border: none;
                 }
                 .button:hover {
-                    box-shadow: 0 6px 20px rgba(123, 44, 191, 0.6);
+                    background-color: #7b1fa2;
+                    box-shadow: 0 6px 15px rgba(142, 36, 170, 0.3);
                     transform: translateY(-2px);
                 }
                 .footer {
@@ -169,8 +172,9 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(JSON.stringify(data), {
       headers: { "Content-Type": "application/json" },
     });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

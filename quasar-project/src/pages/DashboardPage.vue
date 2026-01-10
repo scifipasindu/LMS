@@ -55,6 +55,9 @@
        </div>
     </div>
 
+    <!-- Announcements Section -->
+    <AnnouncementsSection />
+
     <!-- Content Grid -->
     <div class="row q-col-gutter-xl">
        <!-- My Courses -->
@@ -158,8 +161,10 @@
 import { ref, onMounted } from 'vue'
 import { supabase } from 'boot/supabase'
 import { useQuasar, date } from 'quasar'
+import AnnouncementsSection from 'components/AnnouncementsSection.vue'
 
 const $q = useQuasar()
+
 const userName = ref('User')
 const userRole = ref('')
 const attendance = ref('0%')

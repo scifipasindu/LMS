@@ -58,7 +58,7 @@ const routes = [
       { path: 'courses', component: () => import('pages/AdminCoursesPage.vue') },
       { path: 'settings', component: () => import('pages/AdminPage.vue') } // Placeholder
     ],
-    meta: { requiresAuth: true, role: 'admin' }
+    meta: { requiresAuth: true, role: ['admin', 'staff'] }
   },
 
   // Always leave this as last one,

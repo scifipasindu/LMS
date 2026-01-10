@@ -2,7 +2,7 @@
   <q-page class="q-pa-lg">
     <div class="row justify-between items-center q-mb-lg">
        <h4 class="text-h4 text-weight-bold q-my-none" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Course Management</h4>
-       <q-btn color="primary" icon="add" label="New Course" @click="openNewCourse" />
+       <q-btn v-if="!isStaff" color="primary" icon="add" label="New Course" @click="openNewCourse" />
     </div>
 
     <div v-if="loading" class="text-center q-pa-xl">
@@ -13,10 +13,6 @@
         <div class="col-12 col-md-6 col-lg-4" v-for="course in courses" :key="course.id">
             <q-card class="column full-height" :class="$q.dark.isActive ? 'bg-dark-card text-white' : 'bg-white text-dark shadow-2'">
                 <q-img :src="course.image_url || 'https://cdn.quasar.dev/img/parallax2.jpg'" :ratio="16/9">
-                    <div class="absolute-top-right q-pa-xs">
-                        <q-btn round flat dense icon="edit" color="white" class="bg-black-glass q-mr-xs" @click="editCourse(course)" />
-                        <q-btn round flat dense icon="delete" color="negative" class="bg-black-glass" @click="deleteCourse(course.id)" />
-                    </div>
                 </q-img>
                 <q-card-section>
                     <div class="row items-center justify-between no-wrap q-mb-xs">
@@ -27,7 +23,20 @@
                     <div class="text-caption text-grey-5 ellipsis-2-lines">{{ course.description }}</div>
                     <q-chip dense outline color="grey-6" size="sm" icon="library_books" class="q-mt-sm">{{ course.lessons?.length || 0 }} Lessons</q-chip>
                 </q-card-section>
-                <q-card-actions align="right" class="q-mt-auto">
+                <q-card-actions class="q-mt-auto row justify-between">
+                    <div>
+                        <q-btn flat round icon="edit" color="primary" @click="editCourse(course)" />
+                        <!-- Only Admin can delete -->
+                        <q-btn v-if="!isStaff" flat round icon="delete" color="negative" @click="deleteCourse(course.id)" />
+                        <!-- Only Admin can assign staff -->
+                        <q-btn v-if="!isStaff" flat round icon="group_add" color="secondary" @click="openStaffManager(course)">
+                            <q-tooltip>Assign Staff</q-tooltip>
+                        </q-btn>
+                        <!-- Enroll Student -->
+                        <q-btn flat round icon="person_add" color="positive" @click="openEnrollmentManager(course)">
+                            <q-tooltip>Enroll Student</q-tooltip>
+                        </q-btn>
+                    </div>
                     <q-btn flat color="accent" label="Manage Videos" @click="openLessonManager(course)" />
                 </q-card-actions>
             </q-card>
@@ -234,6 +243,99 @@
         </q-card>
     </q-dialog>
 
+    <!-- ASSIGN STAFF DIALOG -->
+    <q-dialog v-model="showStaffDialog">
+        <q-card style="min-width: 400px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
+             <q-bar class="q-py-md" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-3'">
+                <div class="text-h6">Assign Staff</div>
+                <q-space />
+                <q-btn dense flat icon="close" v-close-popup />
+             </q-bar>
+             
+             <q-card-section>
+                <div class="text-subtitle1 q-mb-sm">Select Staff to manage <b>{{ selectedCourse?.title }}</b></div>
+                <div v-if="staffList.length === 0" class="text-grey">No Staff members found.</div>
+                <q-list separator>
+                     <q-item v-for="staff in staffList" :key="staff.id" tag="label" v-ripple>
+                        <q-item-section side top>
+                           <q-checkbox v-model="staff.assigned" @update:model-value="toggleAssignment(staff)" color="secondary" />
+                        </q-item-section>
+                        <q-item-section>
+                           <q-item-label>{{ staff.full_name || staff.email }}</q-item-label>
+                           <q-item-label caption>{{ staff.email }}</q-item-label>
+                        </q-item-section>
+                     </q-item>
+                </q-list>
+             </q-card-section>
+        </q-card>
+    </q-dialog>
+
+    <!-- ENROLLMENT MANAGER DIALOG -->
+    <q-dialog v-model="showEnrollmentDialog">
+        <q-card style="min-width: 500px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
+             <q-bar class="q-py-md" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-3'">
+                <div class="text-h6">Enroll Students: {{ selectedCourse?.title }}</div>
+                <q-space />
+                <q-btn dense flat icon="close" v-close-popup />
+             </q-bar>
+             
+             <q-card-section>
+                <!-- Add Student Form -->
+                <div class="row q-col-gutter-sm items-center q-mb-md">
+                    <div class="col-grow">
+                         <q-select
+                            filled
+                            :dark="$q.dark.isActive"
+                            v-model="selectedStudent"
+                            use-input
+                            input-debounce="300"
+                            label="Search Student by Name/Email"
+                            :options="studentOptions"
+                            @filter="filterStudents"
+                            option-label="label"
+                            option-value="id"
+                            behavior="menu"
+                        >
+                            <template v-slot:no-option>
+                              <q-item>
+                                <q-item-section class="text-grey">
+                                  No results
+                                </q-item-section>
+                              </q-item>
+                            </template>
+                        </q-select>
+                    </div>
+                    <div class="col-auto">
+                        <q-btn color="positive" icon="person_add" label="Enroll" @click="enrollStudent" :disable="!selectedStudent" />
+                    </div>
+                </div>
+
+                <q-separator class="q-my-md" />
+
+                <!-- Enrolled List -->
+                <div class="text-subtitle1 q-mb-sm">Enrolled Students ({{ enrolledStudents.length }})</div>
+                <div v-if="enrolledStudents.length === 0" class="text-grey">No students enrolled yet.</div>
+                
+                <q-list separator style="max-height: 400px; overflow-y: auto">
+                     <q-item v-for="student in enrolledStudents" :key="student.id">
+                        <q-item-section avatar>
+                           <q-avatar color="primary" text-color="white" icon="person" />
+                        </q-item-section>
+                        <q-item-section>
+                           <q-item-label>{{ student.full_name }}</q-item-label>
+                           <q-item-label caption>{{ student.email }}</q-item-label>
+                        </q-item-section>
+                        <q-item-section side>
+                            <q-btn flat round icon="delete" color="negative" @click="unenrollStudent(student)">
+                                <q-tooltip>Remove/Unenroll</q-tooltip>
+                            </q-btn>
+                        </q-item-section>
+                     </q-item>
+                </q-list>
+             </q-card-section>
+        </q-card>
+    </q-dialog>
+
   </q-page>
 </template>
 
@@ -250,6 +352,7 @@ const subjects = ref([])
 const subjectOptions = ref([])
 const imageFile = ref(null)
 const uploadingImage = ref(false)
+const isStaff = ref(false) // New State
 
 // Course CRUD
 const showCourseDialog = ref(false)
@@ -269,6 +372,10 @@ const processingVideo = ref(false)
 // Video Preview
 const showPreview = ref(false)
 const previewId = ref(null)
+
+// Staff Assignment
+const showStaffDialog = ref(false)
+const staffList = ref([])
 
 onMounted(() => {
     fetchInstructors()
@@ -337,9 +444,34 @@ const handleImageUpload = async (file) => {
 
 const fetchCourses = async () => {
     loading.value = true
-    const { data, error } = await supabase.from('courses').select('*, lessons(*), profiles(full_name)').order('created_at', { ascending: false })
+    
+    // Check Role First
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        if (profile?.role === 'staff') {
+            isStaff.value = true
+        }
+    }
+
+    let query = supabase.from('courses').select('*, lessons(*), profiles(full_name)').order('created_at', { ascending: false })
+
+    // Filter for Staff
+    if (isStaff.value) {
+        const { data: assignments } = await supabase.from('course_assignments').select('course_id').eq('staff_id', user.id)
+        if (assignments && assignments.length > 0) {
+            const assignedIds = assignments.map(a => a.course_id)
+            query = query.in('id', assignedIds)
+        } else {
+             // If no assignments, show nothing (force empty ID list)
+             query = query.in('id', ['00000000-0000-0000-0000-000000000000'])
+        }
+    }
+
+    const { data, error } = await query
     if (error) console.error(error)
     else courses.value = data
+    
     loading.value = false
 }
 
@@ -455,6 +587,136 @@ const deleteLesson = async (id) => {
     if(!confirm('Remove this video?')) return
     const { error } = await supabase.from('lessons').delete().eq('id', id)
     if (!error) fetchLessons(selectedCourse.value.id)
+}
+
+// STAFF ASSIGNMENT LOGIC
+const openStaffManager = async (course) => {
+    selectedCourse.value = course
+    showStaffDialog.value = true
+    
+    // Fetch All Staff
+    const { data: allStaff } = await supabase.from('profiles')
+        .select('id, full_name, email')
+        .eq('role', 'staff')
+        
+    // Fetch Assigned Staff
+    const { data: assignments } = await supabase.from('course_assignments')
+        .select('staff_id')
+        .eq('course_id', course.id)
+        
+    const assignedIds = (assignments || []).map(a => a.staff_id)
+    
+    // Merge
+    staffList.value = (allStaff || []).map(s => ({
+        ...s,
+        assigned: assignedIds.includes(s.id)
+    }))
+}
+
+const toggleAssignment = async (staff) => {
+    if (staff.assigned) {
+        // ASSIGN
+        await supabase.from('course_assignments').insert([{
+            course_id: selectedCourse.value.id,
+            staff_id: staff.id
+        }])
+        $q.notify({ type: 'positive', message: `Attached ${staff.full_name || 'Staff'}` })
+    } else {
+        // UNASSIGN
+        await supabase.from('course_assignments').delete()
+            .eq('course_id', selectedCourse.value.id)
+            .eq('staff_id', staff.id)
+        $q.notify({ type: 'warning', message: `Removed ${staff.full_name || 'Staff'}` })
+    }
+}
+
+// ENROLLMENT MANAGER LOGIC
+const showEnrollmentDialog = ref(false)
+const studentOptions = ref([])
+const enrolledStudents = ref([])
+const selectedStudent = ref(null)
+
+const openEnrollmentManager = async (course) => {
+    selectedCourse.value = course
+    showEnrollmentDialog.value = true
+    selectedStudent.value = null
+    fetchEnrolledStudents(course.id)
+}
+
+const fetchEnrolledStudents = async (courseId) => {
+    const { data } = await supabase.from('enrollments')
+        .select('id, user_id, profiles:user_id(full_name, email)')
+        .eq('course_id', courseId)
+        
+    enrolledStudents.value = (data || []).map(e => ({
+        id: e.user_id, // We use user_id to identify
+        enrollment_id: e.id,
+        full_name: e.profiles?.full_name || 'Unknown',
+        email: e.profiles?.email
+    }))
+}
+
+const filterStudents = async (val, update) => {
+    if (val === '') {
+        update(() => { studentOptions.value = [] })
+        return
+    }
+
+    update(async () => {
+        const needle = val.toLowerCase()
+        const { data } = await supabase.from('profiles')
+            .select('id, full_name, email')
+            .or(`full_name.ilike.%${needle}%,email.ilike.%${needle}%`)
+            .limit(10)
+            
+        studentOptions.value = (data || []).map(s => ({
+            label: `${s.full_name} (${s.email})`,
+            id: s.id,
+            ...s
+        }))
+    })
+}
+
+const enrollStudent = async () => {
+    if (!selectedStudent.value) return
+    
+    // Check if empty
+    // Check if already enrolled
+    if (enrolledStudents.value.some(s => s.id === selectedStudent.value.id)) {
+        $q.notify({ type: 'warning', message: 'Student already enrolled' })
+        return
+    }
+
+    const { error } = await supabase.from('enrollments').insert([{
+        user_id: selectedStudent.value.id,
+        course_id: selectedCourse.value.id,
+        status: 'active' // Manual enrollment assumes active/paid
+    }])
+
+    if (error) {
+        $q.notify({ type: 'negative', message: 'Failed to enroll' })
+        console.error(error)
+    } else {
+        $q.notify({ type: 'positive', message: 'Student Enrolled!' })
+        fetchEnrolledStudents(selectedCourse.value.id)
+        selectedStudent.value = null
+    }
+}
+
+const unenrollStudent = async (student) => {
+    if (!confirm(`Remove ${student.full_name} from this course?`)) return
+    
+    // Delete by enrollment_id if we have it, or composite
+    const { error } = await supabase.from('enrollments')
+        .delete()
+        .eq('id', student.enrollment_id)
+        
+    if (error) {
+         $q.notify({ type: 'negative', message: 'Failed to unenroll' })
+    } else {
+        $q.notify({ type: 'positive', message: 'Student Removed' })
+        fetchEnrolledStudents(selectedCourse.value.id)
+    }
 }
 </script>
 
