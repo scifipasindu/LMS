@@ -1,12 +1,11 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from '@supabase/supabase-js'
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-serve(async (req) => {
+Deno.serve(async (req) => {
     // CORS Headers
     const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
@@ -94,12 +93,6 @@ serve(async (req) => {
         // 8. Execute Profile Updates
         const profileUpdates: any = {}
         if (full_name) profileUpdates.full_name = full_name
-        if (role && requester.id !== id) profileUpdates.role = role // Only admins can change roles for others, ignore for self? 
-        // Actually, let's strictly control role updates. 
-        // If self-update, do NOT allow role change unless you are already admin? 
-        // For now, let's assume the frontend protects this, but backend should too.
-        // We will skip role update here if self-update to be safe, unless explicit logic added.
-        // But the prompt was about email/password. Let's stick to that.
         
         if (email) profileUpdates.email = email // Sync email to profile
 
