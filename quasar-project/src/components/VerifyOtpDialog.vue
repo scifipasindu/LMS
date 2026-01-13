@@ -102,15 +102,20 @@ const error = ref('')
 const emailSent = ref(false)
 const hasTotp = ref(false)
 const method = ref('email')
-const totpFactorId = ref(null)
+
 const factorsLoaded = ref(false)
+
+const verifiedTotpFactors = ref([])
 
 const checkFactors = async () => {
     const { data: factors } = await supabase.auth.mfa.listFactors()
-    const verified = factors?.totp?.find(f => f.status === 'verified')
-    if (verified) {
+    verifiedTotpFactors.value = factors?.totp?.filter(f => f.status === 'verified') || []
+    
+    if (verifiedTotpFactors.value.length > 0) {
         hasTotp.value = true
-        totpFactorId.value = verified.id
+        // Default to first one if needed, but we will iterate
+        // totpFactorId.value = verifiedTotpFactors.value[0].id 
+        
         // Force immediate switch
         method.value = 'totp'
         step.value = 2
@@ -198,12 +203,24 @@ const verifyTotp = async () => {
     }
     loading.value = true
     error.value = ''
+    
     try {
-        const { error: mfaError } = await supabase.auth.mfa.challengeAndVerify({
-            factorId: totpFactorId.value,
-            code: code.value
-        })
-        if (mfaError) throw mfaError
+        let success = false
+        // Try all verified factors
+        for (const factor of verifiedTotpFactors.value) {
+            const { error: mfaError } = await supabase.auth.mfa.challengeAndVerify({
+                factorId: factor.id,
+                code: code.value
+            })
+            if (!mfaError) {
+                success = true
+                break // Stop on first success
+            }
+        }
+
+        if (!success) {
+            throw new Error('Invalid Code')
+        }
         
         $q.notify({ type: 'positive', message: 'Authenticator Verified!' })
         emit('verified')

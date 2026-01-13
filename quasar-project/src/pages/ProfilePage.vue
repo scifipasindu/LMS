@@ -177,33 +177,66 @@
                  <q-separator :dark="$q.dark.isActive" class="q-my-lg" />
                  
                  <!-- 2FA Section: Main Admin ONLY -->
+                 <!-- 2FA Section: Main Admin ONLY -->
                  <template v-if="!isEditingOther && currentUserEmail === MAIN_ADMIN_EMAIL">
                     <h6 class="text-h6 text-weight-bold q-my-none text-accent">Two-Factor Authentication</h6>
-                    <p class="text-caption q-mb-md" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">Secure your account with TOTP (Authenticator App).</p>
+                    <p class="text-caption q-mb-md" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">Secure your access with Authenticator App (TOTP).</p>
                     
-                    <div v-if="!isMfaEnabled">
-                        <q-btn v-if="!mfaData.id" label="Enable 2FA" color="accent" outline rounded icon="security" @click="startMfaEnrollment" :loading="enrollingMfa" />
+                    <!-- Enrollment / New Device UI -->
+                    <div v-if="mfaData.id" class="q-pa-md bg-dark-glass rounded-borders q-mb-md">
+                        <div class="text-center q-mb-md">
+                            <img :src="mfaData.qrCodeUrl" style="border-radius: 10px; border: 4px solid white;">
+                            <div class="text-caption q-mt-sm text-grey">Scan this QR code with your new Authenticator App</div>
+                        </div>
                         
-                        <div v-else class="q-pa-md bg-dark-glass rounded-borders">
-                            <div class="text-center q-mb-md">
-                                <img :src="mfaData.qrCodeUrl" style="border-radius: 10px; border: 4px solid white;">
-                                <div class="text-caption q-mt-sm text-grey">Scan this QR code with your Authenticator App</div>
-                            </div>
-                            
-                            <div class="row items-center q-gutter-md">
-                                <q-input filled dense v-model="mfaCode" label="Enter Code" class="col" :dark="$q.dark.isActive" mask="######" />
-                                <q-btn label="Verify & Enable" color="positive" @click="verifyMfa" :loading="verifyingMfa" />
-                                <q-btn flat round icon="close" color="negative" @click="mfaData = {}" />
-                            </div>
+                        <div class="row items-center q-gutter-md">
+                            <q-input filled dense v-model="mfaCode" label="Enter Code from New App" class="col" :dark="$q.dark.isActive" mask="######" />
+                            <q-btn label="Verify & Enable" color="positive" @click="verifyMfa" :loading="verifyingMfa" />
+                            <q-btn flat round icon="close" color="negative" @click="mfaData = {}" />
                         </div>
                     </div>
-                    <div v-else>
-                        <q-banner class="bg-positive text-white rounded-borders">
-                            <template v-slot:avatar>
-                                <q-icon name="verified_user" />
-                            </template>
-                            Two-Factor Authentication is ENABLED. Your account is secure.
+
+                    <!-- List of Enabled Devices -->
+                    <div v-if="isMfaEnabled">
+                        <q-list bordered separator class="rounded-borders q-mb-md" :class="$q.dark.isActive ? 'bg-dark-card' : 'bg-white'">
+                            <q-item-label header>Active Devices</q-item-label>
+                            
+                            <q-item v-for="factor in activeMfaFactors" :key="factor.id">
+                                <q-item-section avatar>
+                                    <q-icon name="smartphone" color="primary" />
+                                </q-item-section>
+                                <q-item-section>
+                                    <q-item-label>{{ factor.friendly_name || 'Authenticator App' }}</q-item-label>
+                                    <q-item-label caption>ID: ...{{ factor.id.slice(-4) }}</q-item-label>
+                                </q-item-section>
+                                <q-item-section side>
+                                    <q-btn flat round color="negative" icon="delete" @click="initiateMfaAction('remove', factor.id)">
+                                        <q-tooltip>Remove Device</q-tooltip>
+                                    </q-btn>
+                                </q-item-section>
+                            </q-item>
+                        </q-list>
+
+                        <div class="row justify-end">
+                             <q-btn 
+                                outline 
+                                color="primary" 
+                                label="Add New Device" 
+                                icon="add_reaction" 
+                                @click="initiateMfaAction('add')" 
+                             />
+                        </div>
+                    </div>
+
+                    <!-- Initial State (No Devices) -->
+                    <div v-else-if="!mfaData.id">
+                        <q-banner class="bg-warning text-dark rounded-borders q-mb-md">
+                             <template v-slot:avatar>
+                                <q-icon name="warning" />
+                             </template>
+                             You have not enabled 2FA yet. Your account is at risk.
                         </q-banner>
+                        <q-btn label="Enable 2FA Now" color="accent" unelevated rounded icon="security" @click="initiateMfaAction('add')" :loading="enrollingMfa" />
                     </div>
                  </template>
 
@@ -306,7 +339,8 @@ const initialRole = ref('')
 const currentUserId = ref(null)
 const isAdmin = ref(false)
 const adminMfaFactorId = ref(null)
-const MAIN_ADMIN_EMAIL = 'janiruhansaga2029@gmail.com'
+const MAIN_ADMIN_EMAIL = 'janiruhansaga2025@gmail.com'
+const activeMfaFactors = ref([]) // Store list of verified factors
 // Verification State
 const showOtp = ref(false)
 const otpAction = ref('profile_update')
@@ -376,12 +410,15 @@ const getUserProfile = async (userId) => { // Renamed from getProfile
        initialPin.value = data.security_pin // Store initial PIN
    }
    
-   // Check MFA Status (Only if self)
+   // Check MFA Status (List all verified factors)
    if (!isEditingOther.value) {
        const { data: factors } = await supabase.auth.mfa.listFactors()
        if (factors && factors.totp.length > 0) {
-           const verifiedFactor = factors.totp.find(f => f.status === 'verified')
-           if (verifiedFactor) isMfaEnabled.value = true
+           activeMfaFactors.value = factors.totp.filter(f => f.status === 'verified')
+           isMfaEnabled.value = activeMfaFactors.value.length > 0
+       } else {
+           activeMfaFactors.value = []
+           isMfaEnabled.value = false
        }
 
        // Auto-Show QR for Main Admin if not enabled
@@ -391,29 +428,67 @@ const getUserProfile = async (userId) => { // Renamed from getProfile
    }
 }
 
+// MFA Management Flow State
+const mfaPendingAction = ref(null) // 'add' or 'remove'
+const mfaTargetId = ref(null)
+
+const initiateMfaAction = (action, targetId = null) => {
+    mfaPendingAction.value = action
+    mfaTargetId.value = targetId
+    
+    // 1. Require PIN
+    if (profile.value.security_pin) {
+        showPin.value = true
+    } else {
+        // No PIN? (Should not happen for admin, but safe fallback)
+        proceedToMfaCheck() 
+    }
+}
+
+const proceedToMfaCheck = () => {
+    // 2. Require OTP (only if MFA is enabled/factors exist)
+    if (isMfaEnabled.value && activeMfaFactors.value.length > 0) {
+        otpAction.value = 'mfa_management' // Custom action for dialog title
+        showOtp.value = true
+    } else {
+        // No existing MFA = Safe to proceed (first enrollment)
+        executeMfaAction()
+    }
+}
+
+const executeMfaAction = async () => {
+    if (mfaPendingAction.value === 'add') {
+        startMfaEnrollment()
+    } else if (mfaPendingAction.value === 'remove' && mfaTargetId.value) {
+        await removeMfaFactor(mfaTargetId.value)
+    }
+    // Reset
+    mfaPendingAction.value = null
+    mfaTargetId.value = null
+}
+
+const removeMfaFactor = async (factorId) => {
+    try {
+        await supabase.auth.mfa.unenroll({ factorId })
+        $q.notify({ type: 'positive', message: 'Device removed successfully' })
+        // Refresh list
+        getUserProfile(profile.value.id)
+    } catch (e) {
+        console.error(e)
+        $q.notify({ type: 'negative', message: 'Failed to remove device' })
+    }
+}
+
 const startMfaEnrollment = async () => {
     if (currentUserEmail.value !== MAIN_ADMIN_EMAIL) return
     if (enrollingMfa.value) return
     enrollingMfa.value = true
     
     try {
-        // 1. Clean up stale/unverified factors to prevent collisions
-        const { data: factors } = await supabase.auth.mfa.listFactors()
-        if (factors && factors.totp.length > 0) {
-            // Remove ANY unverified factors OR factors starting with 'OnlineClass' (including previous timestamped ones)
-            const staleFactors = factors.totp.filter(f => 
-                f.status === 'unverified' || 
-                f.friendly_name?.startsWith('OnlineClass')
-            )
-            
-            for (const factor of staleFactors) {
-                // Ignore errors during cleanup (best effort against race conditions)
-                await supabase.auth.mfa.unenroll({ factorId: factor.id }).catch((e) => console.warn('Cleanup failed for ' + factor.id, e))
-            }
-        }
-
+        // NO cleanup of old factors to allow multiple devices
+        
         // 2. Start new enrollment with unique Friendly Name
-        const uniqueName = `OnlineClass (${Date.now()})`
+        const uniqueName = `OnlineClass (${new Date().toLocaleString()})`
         const { data, error } = await supabase.auth.mfa.enroll({
             factorType: 'totp',
             friendlyName: uniqueName
@@ -429,6 +504,10 @@ const startMfaEnrollment = async () => {
             secret: data.totp.secret,
             qrCodeUrl: qrCodeUrl
         }
+        // Force UI to show enrollment
+        // We use a separate state or just modal?
+        // Let's use the existing mfaData check in template
+        
     } catch (err) {
         console.error(err)
         $q.notify({ type: 'negative', message: 'Failed to start enrollment: ' + err.message })
@@ -457,6 +536,8 @@ const verifyMfa = async () => {
         verifyingMfa.value = false
     }
 }
+
+
 
 const handleAvatarUpload = async (file) => {
     if (!file) return
@@ -620,12 +701,25 @@ const updateProfile = async () => {
 
 const handleOtpVerified = () => {
     isOtpVerified.value = true
-    updateProfile() // Retry
+    
+    if (otpAction.value === 'mfa_management') {
+        showOtp.value = false // Close dialog
+        executeMfaAction()
+    } else {
+        updateProfile() // Standard update
+    }
 }
 
 const handlePinVerified = () => {
     isPinVerified.value = true
-    updateProfile()
+    
+    // If we are in MFA management flow, proceed to OTP check
+    if (mfaPendingAction.value) {
+        showPin.value = false // Close PIN dialog
+        proceedToMfaCheck()
+    } else {
+        updateProfile()
+    }
 }
 
 
