@@ -336,6 +336,12 @@
         </q-card>
     </q-dialog>
 
+    <!-- PIN Dialog -->
+    <PinDialog 
+      v-model="showPin" 
+      @verified="handlePinVerified" 
+    />
+
   </q-page>
 </template>
 
@@ -343,6 +349,7 @@
 import { ref, onMounted } from 'vue'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
+import PinDialog from 'components/PinDialog.vue'
 
 const $q = useQuasar()
 const loading = ref(false)
@@ -475,29 +482,47 @@ const fetchCourses = async () => {
     loading.value = false
 }
 
+// PIN LOGIC
+const showPin = ref(false)
+const pendingPinAction = ref(null)
+
+const triggerPin = (callback) => {
+    pendingPinAction.value = callback
+    showPin.value = true
+}
+
+const handlePinVerified = () => {
+    if (pendingPinAction.value) pendingPinAction.value()
+    pendingPinAction.value = null
+}
+
 const saveCourse = async () => {
     if (!courseForm.value.title) return
-    processing.value = true
-    try {
-        const payload = { ...courseForm.value }
-        let error = null
-        if (isEditing.value) {
-            const { error: e } = await supabase.from('courses').update(payload).eq('id', editingId.value)
-            error = e
-        } else {
-            const { error: e } = await supabase.from('courses').insert([payload])
-            error = e
+    
+    // Require PIN for Adding/Editing Course
+    triggerPin(async () => {
+        processing.value = true
+        try {
+            const payload = { ...courseForm.value }
+            let error = null
+            if (isEditing.value) {
+                const { error: e } = await supabase.from('courses').update(payload).eq('id', editingId.value)
+                error = e
+            } else {
+                const { error: e } = await supabase.from('courses').insert([payload])
+                error = e
+            }
+            if (error) throw error
+            $q.notify({ type: 'positive', message: 'Course saved!' })
+            showCourseDialog.value = false
+            fetchCourses()
+        } catch (err) {
+            console.error(err)
+            $q.notify({ type: 'negative', message: 'Error saving course' })
+        } finally {
+            processing.value = false
         }
-        if (error) throw error
-        $q.notify({ type: 'positive', message: 'Course saved!' })
-        showCourseDialog.value = false
-        fetchCourses()
-    } catch (err) {
-        console.error(err)
-        $q.notify({ type: 'negative', message: 'Error saving course' })
-    } finally {
-        processing.value = false
-    }
+    })
 }
 
 const deleteCourse = async (id) => {
@@ -680,27 +705,29 @@ const filterStudents = async (val, update) => {
 const enrollStudent = async () => {
     if (!selectedStudent.value) return
     
-    // Check if empty
-    // Check if already enrolled
+    // Check if added
     if (enrolledStudents.value.some(s => s.id === selectedStudent.value.id)) {
         $q.notify({ type: 'warning', message: 'Student already enrolled' })
         return
     }
 
-    const { error } = await supabase.from('enrollments').insert([{
-        user_id: selectedStudent.value.id,
-        course_id: selectedCourse.value.id,
-        status: 'active' // Manual enrollment assumes active/paid
-    }])
+    // Require PIN for Enrolling Student
+    triggerPin(async () => {
+        const { error } = await supabase.from('enrollments').insert([{
+            user_id: selectedStudent.value.id,
+            course_id: selectedCourse.value.id,
+            status: 'active' 
+        }])
 
-    if (error) {
-        $q.notify({ type: 'negative', message: 'Failed to enroll' })
-        console.error(error)
-    } else {
-        $q.notify({ type: 'positive', message: 'Student Enrolled!' })
-        fetchEnrolledStudents(selectedCourse.value.id)
-        selectedStudent.value = null
-    }
+        if (error) {
+            $q.notify({ type: 'negative', message: 'Failed to enroll' })
+            console.error(error)
+        } else {
+            $q.notify({ type: 'positive', message: 'Student Enrolled!' })
+            fetchEnrolledStudents(selectedCourse.value.id)
+            selectedStudent.value = null
+        }
+    })
 }
 
 const unenrollStudent = async (student) => {

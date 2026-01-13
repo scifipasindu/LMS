@@ -50,6 +50,10 @@
                         <q-tooltip>Approve User</q-tooltip>
                     </q-btn>
 
+                    <q-btn v-if="props.row.status === 'active' && currentUserEmail === MAIN_ADMIN_EMAIL" flat round dense icon="block" color="warning" @click="confirmBan(props.row)">
+                        <q-tooltip>Ban/Suspend User</q-tooltip>
+                    </q-btn>
+
                     <q-btn flat round dense icon="edit" color="primary" @click="editUser(props.row)" :disable="!canEdit(props.row)">
                        <q-tooltip>Edit Profile</q-tooltip>
                     </q-btn>
@@ -58,7 +62,7 @@
                        <q-tooltip>Send Password Reset Email</q-tooltip>
                     </q-btn>
 
-                    <!-- Delete NEVER allowed for Main Admin -->
+                    <!-- Delete NEVER allowed for Main Admin (Self) -->
                     <!-- Delete Button: STRICTLY MAIN ADMIN ONLY -->
                     <q-btn v-if="currentUserEmail === MAIN_ADMIN_EMAIL" flat round dense icon="delete" color="negative" @click="confirmDelete(props.row)">
                        <q-tooltip>Delete Profile</q-tooltip>
@@ -110,7 +114,20 @@
     </q-dialog>
 
   
-    <!-- Security PIN Dialog -->
+    <!-- OTP Verification Dialog -->
+    <VerifyOtpDialog 
+      v-model="showOtp" 
+      :action="otpAction" 
+      @verified="handleOtpVerified" 
+    />
+    
+    <!-- Security PIN Dialog (Kept for Edit Role if needed, but requirements imply OTP for role change. 
+         However, 'When all administrators... add a course' is PIN. 
+         Edit User Role is a profile update. We handled it in ProfilePage. 
+         Here we just link to ProfilePage. 
+         So PIN might still be used for quick access if implemented, but existing code uses PIN.
+         I will keep PIN for 'editUser' triggered 'confirmAction' if it's not 'Remove/Ban'.
+    -->
      <q-dialog v-model='pinDialog' persistent>
         <q-card style='min-width: 300px' :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
             <q-card-section>
@@ -146,6 +163,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
+import VerifyOtpDialog from 'components/VerifyOtpDialog.vue'
 
 const $q = useQuasar()
 const route = useRoute()
@@ -257,6 +275,23 @@ const fetchUsers = async () => {
        }
    }
    loading.value = false
+   loading.value = false
+}
+
+// OTP State
+const showOtp = ref(false)
+const otpAction = ref('')
+const pendingOtpCallback = ref(null)
+
+const triggerOtp = (action, callback) => {
+    otpAction.value = action
+    pendingOtpCallback.value = callback
+    showOtp.value = true
+}
+
+const handleOtpVerified = () => {
+    if (pendingOtpCallback.value) pendingOtpCallback.value()
+    pendingOtpCallback.value = null
 }
 
 // PIN VALIDATION LOGIC
@@ -287,7 +322,8 @@ const verifyPin = () => {
 
 // 1. DELETE ACTION
 const confirmDelete = (row) => {
-    confirmAction(() => {
+    // Requirement: OTP for removing user
+    triggerOtp('remove_user', () => {
         $q.dialog({
             title: 'Confirm Delete',
             message: 'Are you sure? This cannot be undone.',
@@ -295,6 +331,28 @@ const confirmDelete = (row) => {
             persistent: true
         }).onOk(() => {
             deleteUser(row.id, true) 
+        })
+    })
+}
+
+const confirmBan = (row) => {
+    // Requirement: OTP for banning user
+    triggerOtp('ban_user', () => {
+         $q.dialog({
+            title: 'Confirm Ban',
+            message: 'Are you sure you want to ban/suspend this user?',
+            cancel: true,
+            persistent: true
+        }).onOk(async () => {
+            try {
+                const { error } = await supabase.from('profiles').update({ status: 'banned' }).eq('id', row.id)
+                if (error) throw error
+                $q.notify({ type: 'positive', message: 'User Banned' })
+                fetchUsers()
+            } catch (e) {
+                console.error(e)
+                $q.notify({ type: 'negative', message: 'Failed to ban user' })
+            }
         })
     })
 }

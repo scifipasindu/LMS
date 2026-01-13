@@ -26,6 +26,21 @@
           <q-tab name="admin" label="Admin Login" icon="admin_panel_settings" />
        </q-tabs>
 
+       <!-- Verification Dialogs -->
+       <VerifyOtpDialog 
+         v-model="showOtp" 
+         action="login" 
+         title="Weekly Security Check" 
+         @verified="completeLogin" 
+       />
+       
+       <PinDialog 
+         v-model="showPin" 
+         :target-pin="userPin" 
+         mandatory
+         @verified="handlePinVerified" 
+       />
+
        <q-form @submit="handleLogin" class="q-gutter-md">
            <q-input 
              filled 
@@ -93,6 +108,8 @@ import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
+import VerifyOtpDialog from 'components/VerifyOtpDialog.vue'
+import PinDialog from 'components/PinDialog.vue'
 
 const $q = useQuasar()
 const router = useRouter()
@@ -102,6 +119,12 @@ const isPwd = ref(true)
 const rememberMe = ref(false)
 const loading = ref(false)
 const selectedRole = ref('student')
+
+// Verification State
+const showOtp = ref(false)
+const showPin = ref(false)
+const userPin = ref('')
+const pendingProfile = ref(null) // Temporary storage for profile during checks
 
 
 const logoSettings = ref({ dark: '', light: '' })
@@ -154,26 +177,36 @@ const handleLogin = async () => {
     }
 
     // Authorization Check
-    const role = profile?.role?.toLowerCase() || 'student'
+    
+    // Store profile for verification steps
+    pendingProfile.value = profile
+    
+    // 1. PIN CHECK
+    // Fetch PIN from profile (it's already in the 'data' we fetched? No, we need to select it)
+    // Let's re-fetch with security info if not present
+    const { data: secProfile } = await supabase
+       .from('profiles')
+       .select('security_pin, last_verification_date')
+       .eq('id', data.user.id)
+       .single()
+    
+    userPin.value = secProfile?.security_pin
 
-    $q.notify({
-      type: 'positive',
-      message: `Welcome back!`,
-      position: 'top'
-    })
-    
-    // Redirect based on verified role
-    if (role === 'admin') {
-        router.push('/admin')
+    if (userPin.value) {
+        // If PIN exists, require it
+        showPin.value = true
+        return // Stop here, wait for PinDialog to callback
     } else {
-        router.push('/dashboard')
+        // No PIN, proceed to OTP Check
+        checkOtpVerification(secProfile)
     }
-    
+
   } catch (err) {
     if (err.message.includes('Access Denied')) {
         // Keep loading false, show explicit error
     } else {
         // Standard login error
+        await supabase.auth.signOut() // Ensure clean slate if failed mid-way
     }
     
     $q.notify({
@@ -181,9 +214,54 @@ const handleLogin = async () => {
       message: err.message || 'Login failed',
       position: 'top'
     })
-  } finally {
-    loading.value = false
+    loading.value = false // Stop loading on error
   }
+}
+
+const handlePinVerified = async () => {
+    showPin.value = false
+    // PIN passed, now check OTP
+    const { data: secProfile } = await supabase
+       .from('profiles')
+       .select('last_verification_date')
+       .eq('id', pendingProfile.value.id)
+       .single()
+       
+    checkOtpVerification(secProfile)
+}
+
+const checkOtpVerification = (secProfile) => {
+    const lastVer = secProfile?.last_verification_date
+    const oneWeekAgo = new Date()
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+    
+    if (!lastVer || new Date(lastVer) < oneWeekAgo) {
+        // Need verification
+        showOtp.value = true
+        loading.value = false // Pause loading spinner while user interacts
+    } else {
+        // Verification valid
+        completeLogin()
+    }
+}
+
+const completeLogin = () => {
+    showOtp.value = false
+    const role = pendingProfile.value?.role?.toLowerCase() || 'student'
+
+    $q.notify({
+      type: 'positive',
+      message: `Welcome back!`,
+      position: 'top'
+    })
+    
+    console.log("Redirecting to role:", role)
+    if (role === 'admin') {
+        router.push('/admin')
+    } else {
+        router.push('/dashboard')
+    }
+    loading.value = false
 }
 </script>
 

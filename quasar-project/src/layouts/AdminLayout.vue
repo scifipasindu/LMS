@@ -6,7 +6,7 @@
             <span class="text-accent">Admin</span>Console
          </q-toolbar-title>
          
-         <q-btn flat dense icon="logout" label="Exit to App" to="/dashboard" />
+         <q-btn flat dense icon="logout" label="Logout" @click="handleLogout" />
        </q-toolbar>
     </q-header>
 
@@ -148,10 +148,12 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
 
 const $q = useQuasar()
+const router = useRouter()
 const leftDrawerOpen = ref(true)
 const isAdmin = ref(false)
 const isStaff = ref(false)
@@ -195,6 +197,12 @@ const fetchSettings = async () => {
       const isDark = $q.dark.isActive
       currentLogo.value = isDark ? logoSettings.value.dark : (logoSettings.value.light || logoSettings.value.dark)
    }
+}
+
+const handleLogout = async () => {
+  await supabase.auth.signOut()
+  $q.notify({ type: 'info', message: 'Logged out successfully' })
+  router.push('/login')
 }
 </script>
 

@@ -100,24 +100,61 @@
                     <h6 class="text-h6 text-weight-bold q-my-none">Security</h6>
                     <p class="text-caption q-mb-md" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">Update your password (optional)</p>
 
+                    <!-- Current Password Input -->
+                    <div class="q-mb-md">
+                        <q-input 
+                            filled :dark="$q.dark.isActive" 
+                            v-model="currentPassword" 
+                            label="Current Password" 
+                            :type="showCurrentPw ? 'text' : 'password'"
+                            class="input-dynamic"
+                            placeholder="********"
+                            hint="Required to authorize password changes"
+                        >
+                            <template v-slot:append>
+                                <q-icon
+                                    :name="showCurrentPw ? 'visibility_off' : 'visibility'"
+                                    class="cursor-pointer"
+                                    @click="showCurrentPw = !showCurrentPw"
+                                />
+                            </template>
+                        </q-input>
+                    </div>
+
                     <div class="row q-col-gutter-md">
                         <div class="col-12 col-md-6">
                             <q-input 
                             filled :dark="$q.dark.isActive" 
                             v-model="newPassword" 
                             label="New Password" 
-                            type="password"
+                            :type="showNewPw ? 'text' : 'password'"
                             class="input-dynamic"
-                            />
+                            >
+                                <template v-slot:append>
+                                    <q-icon
+                                        :name="showNewPw ? 'visibility_off' : 'visibility'"
+                                        class="cursor-pointer"
+                                        @click="showNewPw = !showNewPw"
+                                    />
+                                </template>
+                            </q-input>
                         </div>
                         <div class="col-12 col-md-6">
                             <q-input 
                             filled :dark="$q.dark.isActive" 
                             v-model="confirmPassword" 
                             label="Confirm Password" 
-                            type="password"
+                            :type="showConfirmPw ? 'text' : 'password'"
                             class="input-dynamic"
-                            />
+                            >
+                                <template v-slot:append>
+                                    <q-icon
+                                        :name="showConfirmPw ? 'visibility_off' : 'visibility'"
+                                        class="cursor-pointer"
+                                        @click="showConfirmPw = !showConfirmPw"
+                                    />
+                                </template>
+                            </q-input>
                         </div>
                     </div>
                   </template>
@@ -205,33 +242,21 @@
       </q-card>
     </q-dialog>
 
-    <!-- Security PIN Verification Dialog -->
-    <q-dialog v-model="pinDialog" persistent>
-        <q-card style="min-width: 300px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
-            <q-card-section>
-                <div class="text-h6 text-negative">Security Check</div>
-                <div class="text-caption">Enter your CURRENT Security PIN to allow changes.</div>
-            </q-card-section>
-            
-            <q-card-section>
-                <q-input 
-                    v-model="pinInput" 
-                    dense filled 
-                    :dark="$q.dark.isActive" 
-                    label="Current PIN" 
-                    mask="######" 
-                    type="password" 
-                    autofocus
-                    @keyup.enter="verifyPinAndSave"
-                />
-            </q-card-section>
+    <!-- OTP Verification Dialog -->
+    <VerifyOtpDialog 
+      v-model="showOtp" 
+      :action="otpAction" 
+      @verified="handleOtpVerified" 
+    />
 
-            <q-card-actions align="right">
-                <q-btn flat label="Cancel" v-close-popup />
-                <q-btn flat label="Verify & Save" color="negative" @click="verifyPinAndSave" :disable="pinInput.length !== 6" />
-            </q-card-actions>
-        </q-card>
-    </q-dialog>
+    <PinDialog 
+      v-model="showPin"
+      :target-pin="profile.security_pin"
+      @verified="handlePinVerified"
+    />
+
+
+
   </q-page>
 </template>
 
@@ -241,6 +266,8 @@ import { useRoute } from 'vue-router'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
 import QRCode from 'qrcode'
+import VerifyOtpDialog from 'components/VerifyOtpDialog.vue'
+import PinDialog from 'components/PinDialog.vue'
 
 const $q = useQuasar()
 const route = useRoute()
@@ -261,8 +288,14 @@ const profile = ref({
 
 const initialPin = ref('') // Track initial PIN state
 
+const currentPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
+
+// Password Visibility State
+const showCurrentPw = ref(false)
+const showNewPw = ref(false)
+const showConfirmPw = ref(false)
 const isMfaEnabled = ref(false)
 const mfaData = ref({})
 const mfaCode = ref('')
@@ -273,14 +306,15 @@ const initialRole = ref('')
 const currentUserId = ref(null)
 const isAdmin = ref(false)
 const adminMfaFactorId = ref(null)
-const showMfaDialog = ref(false)
-const verificationCode = ref('')
-const isRoleVerified = ref(false)
 const MAIN_ADMIN_EMAIL = 'janiruhansaga2029@gmail.com'
-
-// PIN Verification State
-const pinDialog = ref(false)
-const pinInput = ref('')
+// Verification State
+const showOtp = ref(false)
+const otpAction = ref('profile_update')
+const isOtpVerified = ref(false)
+// PIN & PW Verification State
+const showPin = ref(false)
+const isPinVerified = ref(false)
+const isPasswordVerified = ref(false)
 
 const avatarUrl = computed(() => profile.value.avatar_url)
 
@@ -295,6 +329,7 @@ onMounted(async () => {
     // Store current user ID for permission checks
     currentUserId.value = user.id
     currentUserEmail.value = user.email
+    userEmail.value = user.email // Initialize Input Field
 
     // Check if current user is admin
     const { data: myProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
@@ -464,51 +499,52 @@ const updateProfile = async () => {
         return
     }
 
-    // Check for Security PIN Change - Require Verification of OLD PIN
-    if (profile.value.security_pin !== initialPin.value && initialPin.value) {
-        // If changing PIN and an OLD PIN exists, require verification
-        if (!pinDialog.value) {
-            pinDialog.value = true
+    // STRICT Password Change Verification
+    if (newPassword.value && !isEditingOther.value) {
+        // 1. Require Current Password
+        if (!currentPassword.value) {
+            $q.notify({ type: 'warning', message: 'Please enter your current password to change it.' })
+            return
+        }
+
+        // 2. Verify Current Password (Re-Auth)
+        // Only verify if we haven't just verified it (optimization? No, safer to verify always or track it)
+        // We'll verify every time they hit save if password field is filled
+        if (!isPasswordVerified.value) {
+             const { error } = await supabase.auth.signInWithPassword({
+                email: currentUserEmail.value,
+                password: currentPassword.value
+            })
+            if (error) {
+                $q.notify({ type: 'negative', message: 'Incorrect Current Password' })
+                return
+            }
+            isPasswordVerified.value = true
+        }
+
+        // 3. Require PIN (if exists)
+        if (profile.value.security_pin && !isPinVerified.value) {
+            showPin.value = true
             return
         }
     }
 
+    // Detect Sensitive Changes
+    const changes = []
+    if (profile.value.security_pin !== initialPin.value) changes.push('change_pin')
+    if (profile.value.role !== initialRole.value) changes.push('change_role')
+    if (newPassword.value) changes.push('change_password')
+    if (userEmail.value !== currentUserEmail.value && !isEditingOther.value) changes.push('change_email') // Rough check
+
+    // If sensitive changes and NOT verified yet
+    if (changes.length > 0 && !isOtpVerified.value) {
+        otpAction.value = changes[0] // Use the first substantial action as label
+        showOtp.value = true
+        return
+    }
 
     loading.value = true
     try {
-        // Check for Role Change
-        if (profile.value.role !== initialRole.value) {
-            if (currentUserEmail.value !== MAIN_ADMIN_EMAIL) {
-                $q.notify({ type: 'negative', message: 'Only Main Admin can change user roles.' })
-                loading.value = false
-                return
-            }
-
-            // Lazy fetch factors if not cached
-            if (!adminMfaFactorId.value) {
-                 const { data: factors, error: mfaError } = await supabase.auth.mfa.listFactors()
-                 if (!mfaError && factors && factors.totp.length > 0) {
-                      const verifiedFactor = factors.totp.find(f => f.status === 'verified')
-                      if (verifiedFactor) adminMfaFactorId.value = verifiedFactor.id
-                 }
-            }
-
-            if (!isRoleVerified.value) {
-                if (!adminMfaFactorId.value) {
-                    $q.notify({ 
-                        type: 'negative', 
-                        message: 'Action Blocked: You must enable 2FA on your OWN Profile first to change roles.',
-                        timeout: 5000
-                    })
-                    loading.value = false
-                    return
-                }
-                showMfaDialog.value = true
-                loading.value = false
-                return
-            }
-        }
-
         // 1. Update Profile Data
         const { error } = await supabase
             .from('profiles')
@@ -517,87 +553,82 @@ const updateProfile = async () => {
                 phone: profile.value.phone,
                 bio: profile.value.bio,
                 security_pin: profile.value.security_pin,
-                role: profile.value.role // Allow role update
+                role: profile.value.role
             })
             .eq('id', profile.value.id)
 
         if (error) throw error
 
-        // 2. Update Password if provided (Only for self)
-        if (newPassword.value && !isEditingOther.value) {
-            const { error: pwError } = await supabase.auth.updateUser({
-                password: newPassword.value
-            })
-            if (pwError) throw pwError
-        }
+        // 2. Secure Auth Updates (Email/Password) via Edge Function
+        // This bypasses the email confirmation link requirement (Admin Privilege) 
+        // and sends a security notice instead.
+        const newEmailNorm = userEmail.value ? userEmail.value.trim().toLowerCase() : ''
+        const currentRes = await supabase.auth.getUser()
+        const currentEmail = currentRes.data.user?.email || ''
+        const currentEmailNorm = currentEmail.trim().toLowerCase()
+        const emailChanged = newEmailNorm !== currentEmailNorm
 
-        // 3. Update Email if changed (Isolated try/catch to not block profile save)
-        try {
-            const currentRes = await supabase.auth.getUser()
-            const currentEmail = currentRes.data.user?.email
-            
-            if (userEmail.value !== currentEmail && !isEditingOther.value) {
-                 const { error: emailError } = await supabase.auth.updateUser({
-                     email: userEmail.value
-                 })
-                 if (emailError) throw emailError
-                 
-                 $q.notify({ type: 'info', message: 'Confirmation link sent to new email!', timeout: 5000 })
-            }
-        } catch (emailErr) {
-             console.error('Email update failed:', emailErr)
-             // Supabase Rate Limit 429 or 500 error
-             $q.notify({ type: 'warning', message: 'Profile saved, but Email update failed (Rate Limit). Try again later.' })
+        if ((newPassword.value || emailChanged) && !isEditingOther.value) {
+             const { data: funcData, error: funcError } = await supabase.functions.invoke('secure-profile-update', {
+                body: {
+                    id: profile.value.id,
+                    email: userEmail.value.trim(),
+                    password: newPassword.value || undefined
+                }
+             })
+
+             if (funcError) throw funcError
+             if (funcData?.error) throw new Error(funcData.error)
+             
+             // Update Success Message
+             if (emailChanged) {
+                $q.notify({ type: 'positive', message: 'Email updated immediately. Security notice sent.' })
+             }
+             if (newPassword.value) {
+                $q.notify({ type: 'positive', message: 'Password updated successfully.' })
+             }
         }
         
         $q.notify({ type: 'positive', message: 'Profile updated successfully!' })
         
-        initialRole.value = profile.value.role // Update initial role to match new saved role
+        // Reset State
+        initialRole.value = profile.value.role 
+        initialPin.value = profile.value.security_pin
+        
+        // If password was changed, keep it as currentPassword for this session
+        if (newPassword.value) {
+            currentPassword.value = newPassword.value
+        }
+        
         newPassword.value = ''
         confirmPassword.value = ''
+        // Do NOT clear currentPassword to keep it visible/ready
+        
+        isOtpVerified.value = false 
+        isPinVerified.value = false 
+        isPasswordVerified.value = false
+        // Update current email ref to avoid re-triggering change detection until confirmed
+        // Actually, we should keep it until page reload or real update, but local state is fine.
+        
     } catch (err) {
         console.error(err)
         $q.notify({ type: 'negative', message: 'Error updating profile details' })
     } finally {
         loading.value = false
-        // Reset verified status after save attempt (success or fail)
-        if (isRoleVerified.value) isRoleVerified.value = false
     }
 }
 
-const verifyAndProceed = async () => {
-    try {
-        const { error } = await supabase.auth.mfa.challengeAndVerify({
-            factorId: adminMfaFactorId.value,
-            code: verificationCode.value
-        })
-        
-        if (error) {
-            $q.notify({ type: 'negative', message: 'Invalid 2FA Code' })
-            return
-        }
-        
-        showMfaDialog.value = false
-        isRoleVerified.value = true
-        verificationCode.value = '' // Clear code
-        updateProfile() // Retry update
-        
-    } catch (err) {
-        console.error(err)
-        $q.notify({ type: 'negative', message: 'Verification failed' })
-    }
+const handleOtpVerified = () => {
+    isOtpVerified.value = true
+    updateProfile() // Retry
 }
 
-const verifyPinAndSave = () => {
-    if (pinInput.value === initialPin.value) {
-        pinDialog.value = false
-        pinInput.value = '' 
-        // Proceed with update; pinDialog is now false, so the check will pass
-        updateProfile() 
-    } else {
-        $q.notify({ type: 'negative', message: 'Invalid Current PIN' })
-    }
+const handlePinVerified = () => {
+    isPinVerified.value = true
+    updateProfile()
 }
+
+
 
 
 </script>
