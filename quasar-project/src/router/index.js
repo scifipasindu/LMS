@@ -34,43 +34,50 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     
     // --- MAINTENANCE MODE CHECK ---
     // Allow direct access to maintenance page to avoid loops
-    if (to.path !== '/maintenance') {
-        const { supabase } = await import('boot/supabase')
-        
-        try {
-          // Fetch Settings
-          const { data: settings, error } = await supabase
-               .from('system_settings')
-               .select('value')
-               .eq('key', 'config')
-               .single()
+    // --- MAINTENANCE MODE CHECK ---
+    const { supabase } = await import('boot/supabase')
+    
+    try {
+      // Fetch Settings
+      const { data: settings, error } = await supabase
+           .from('system_settings')
+           .select('value')
+           .eq('key', 'config')
+           .single()
 
-          if (!error && settings?.value?.general?.maintenanceMode === true) {
-               // Check if user is admin (allow admins to bypass)
-               const { data: { user } } = await supabase.auth.getUser()
-               let isAdmin = false
+      const isMaintenanceMode = !error && settings?.value?.general?.maintenanceMode === true
+
+      if (isMaintenanceMode) {
+           // Check if user is admin (allow admins to bypass)
+           const { data: { user } } = await supabase.auth.getUser()
+           let isAdmin = false
+           
+           if (user) {
+               const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single()
                
-               if (user) {
-                   const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('role')
-                    .eq('id', user.id)
-                    .single()
-                   
-                   if (profile?.role === 'admin') isAdmin = true
-               }
+               if (profile?.role === 'admin') isAdmin = true
+           }
 
-               // If not admin and not trying to login -> Redirect to Maintenance
-               if (!isAdmin && to.path !== '/login') {
-                   // Avoid infinite redirect if already going there
-                   next('/maintenance')
-                   return
-               }
+           // If not admin and not trying to login -> Redirect to Maintenance
+           // Also allow access if already on maintenance page to avoid loops
+           if (!isAdmin && to.path !== '/login' && to.path !== '/maintenance') {
+               next('/maintenance')
+               return
+           }
+      } else {
+          // If Maintenance Mode is OFF, but user is trying to access Maintenance Page -> Redirect to Home
+          if (to.path === '/maintenance') {
+              next('/')
+              return
           }
-        } catch (err) {
-          console.error('Maintenance Check Failed:', err)
-          // Default to allowing access if check fails to avoid lockout
-        }
+      }
+    } catch (err) {
+      console.error('Maintenance Check Failed:', err)
+      // Default to allowing access if check fails to avoid lockout
     }
 
     // Requires Auth check
