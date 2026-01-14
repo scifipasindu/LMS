@@ -927,17 +927,20 @@ const fetchEnrolledStudents = async (courseId) => {
 }
 
 const filterStudents = async (val, update) => {
-    if (val === '') {
-        update(() => { studentOptions.value = [] })
-        return
-    }
-
     update(async () => {
-        const needle = val.toLowerCase()
-        const { data } = await supabase.from('profiles')
+        let query = supabase.from('profiles')
             .select('id, full_name, email')
-            .or(`full_name.ilike.%${needle}%,email.ilike.%${needle}%`)
+            .eq('role', 'student') // Only show students
             .limit(10)
+
+        if (val === '') {
+            query = query.order('created_at', { ascending: false }) // Default to recent
+        } else {
+            const needle = val.toLowerCase()
+            query = query.or(`full_name.ilike.%${needle}%,email.ilike.%${needle}%`)
+        }
+
+        const { data } = await query
             
         studentOptions.value = (data || []).map(s => ({
             label: `${s.full_name} (${s.email})`,
@@ -960,8 +963,7 @@ const enrollStudent = async () => {
     triggerPin(async () => {
         const { error } = await supabase.from('enrollments').insert([{
             user_id: selectedStudent.value.id,
-            course_id: selectedCourse.value.id,
-            status: 'active' 
+            course_id: selectedCourse.value.id
         }])
 
         if (error) {
