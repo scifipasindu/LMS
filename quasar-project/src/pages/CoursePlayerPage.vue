@@ -19,19 +19,10 @@
         </div>
 
         <div class="video-container relative-position bg-dark rounded-borders overflow-hidden shadow-10" ref="videoContainer">
-            <iframe 
-                v-if="currentLesson"
-                ref="videoIframe"
-                width="100%" 
-                height="100%" 
-                :src="getEmbedUrl(currentLesson.video_id)" 
-                title="YouTube video player" 
-                frameborder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                allowfullscreen
-                class="absolute-full"
-            ></iframe>
-            <div v-else class="absolute-full flex flex-center text-grey">
+            <!-- YouTube Player Container -->
+            <div id="youtube-player" class="absolute-full"></div>
+            
+            <div v-if="!currentLesson" class="absolute-full flex flex-center text-grey" style="z-index: 10; background: #000;">
                 Select a lesson to start learning
             </div>
 
@@ -144,17 +135,25 @@ const $q = useQuasar()
 const loading = ref(true)
 const course = ref({})
 const lessons = ref([])
-const subjects = ref([]) // NEW
+const subjects = ref([]) 
 const currentLesson = ref(null)
-const videoIframe = ref(null)
 const isPlaying = ref(false)
 const hasAccess = ref(false)
 const checkingAccess = ref(true)
 const currentUserId = ref(null)
+const videoContainer = ref(null)
+
+
+
+// YouTube Player
+let player = null
+const YT_API_URL = 'https://www.youtube.com/iframe_api'
 
 onMounted(async () => {
-    // Listen for YouTube API messages
-    window.addEventListener('message', handleMessage)
+    // Load YouTube API
+    loadYoutubeApi()
+    
+    // Key Listener
     window.addEventListener('keydown', handleKeydown)
 
     const courseId = route.params.id
@@ -240,17 +239,13 @@ onMounted(async () => {
             
         const completedIds = new Set((completions || []).map(c => c.lesson_id))
 
-        // Mark completions in hierarchy
+        // Mark completions in hierarchy & flat list
+        lessons.value.forEach(l => l.completed = completedIds.has(l.id))
         subjects.value.forEach(sub => {
             sub.units.forEach(unit => {
-                unit.lessons.forEach(l => {
-                    l.completed = completedIds.has(l.id)
-                })
+                unit.lessons.forEach(l => l.completed = completedIds.has(l.id))
             })
         })
-        
-        // Also update flat list
-        lessons.value.forEach(l => l.completed = completedIds.has(l.id))
 
         // Auto-play first lesson
         if (lessons.value.length > 0) {
@@ -262,6 +257,8 @@ onMounted(async () => {
                      subjects.value[0].units[0].expanded = true
                  }
             }
+            // Delay init player slightly to ensure DOM is ready
+            setTimeout(() => initPlayer(lessons.value[0].video_id), 500)
         }
     } catch (err) {
         console.error(err)
@@ -273,26 +270,116 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-    window.removeEventListener('message', handleMessage)
     window.removeEventListener('keydown', handleKeydown)
+    if (player && player.destroy) {
+        player.destroy()
+    }
 })
 
-const handleMessage = async (event) => {
-    // Basic state tracking from YouTube events
-    try {
-        const data = JSON.parse(event.data)
-        if (data.event === 'infoDelivery' && data.info && data.info.playerState !== undefined) {
-             // 1 = playing, 2 = paused, 0 = ended
-             if (data.info.playerState === 1) isPlaying.value = true
-             else if (data.info.playerState === 2) isPlaying.value = false
-             else if (data.info.playerState === 0) {
-                 // Video Ended
-                 isPlaying.value = false
-                 await markComplete()
-             }
+// --- YouTube API Logic ---
+
+const loadYoutubeApi = () => {
+    if (!window.YT) {
+        const tag = document.createElement('script')
+        tag.src = YT_API_URL
+        const firstScriptTag = document.getElementsByTagName('script')[0]
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
+        
+        // Define gloabl callback
+        window.onYouTubeIframeAPIReady = () => {
+            // Player will be inited when data is ready or explicitly called
         }
-    } catch {
-        // ignore non-json messages
+    }
+}
+
+const initPlayer = (videoId) => {
+    if (!window.YT || !window.YT.Player) {
+        // Retry if API not ready
+        setTimeout(() => initPlayer(videoId), 500)
+        return
+    }
+
+    if (player) {
+        player.loadVideoById(videoId)
+        return
+    }
+
+    player = new window.YT.Player('youtube-player', {
+        height: '100%',
+        width: '100%',
+        videoId: videoId,
+        playerVars: {
+            'playsinline': 1,
+            'modestbranding': 1,
+            'rel': 0,
+            'controls': 1,
+            'fs': 1 // Enable fullscreen button (even if we block it)
+        },
+        events: {
+            'onStateChange': onPlayerStateChange
+        }
+    })
+}
+
+const onPlayerStateChange = (event) => {
+    if (event.data == window.YT.PlayerState.PLAYING) {
+        isPlaying.value = true
+    } else if (event.data == window.YT.PlayerState.PAUSED) {
+        isPlaying.value = false
+    } else if (event.data == window.YT.PlayerState.ENDED) {
+        isPlaying.value = false
+        markComplete()
+    }
+}
+
+const togglePlay = () => {
+    if (!player || !player.getPlayerState) return
+    const state = player.getPlayerState()
+    if (state === window.YT.PlayerState.PLAYING) {
+        player.pauseVideo()
+    } else {
+        player.playVideo()
+    }
+}
+
+const playLesson = (lesson) => {
+    currentLesson.value = lesson
+    if (player && player.loadVideoById) {
+        player.loadVideoById(lesson.video_id)
+        isPlaying.value = true
+    } else {
+        initPlayer(lesson.video_id)
+    }
+}
+
+// --- Shortcuts ---
+
+const handleKeydown = (e) => {
+    // Fullscreen 'f'
+    if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen()
+    }
+    
+    // Seek Shortcuts
+    if (player && player.getCurrentTime) {
+        const currentTime = player.getCurrentTime()
+        if (e.key === 'ArrowRight') {
+            player.seekTo(currentTime + 10, true)
+        } else if (e.key === 'ArrowLeft') {
+            player.seekTo(Math.max(currentTime - 10, 0), true)
+        }
+    }
+}
+
+const toggleFullscreen = () => {
+    if (!videoContainer.value) return
+
+    if (!document.fullscreenElement) {
+        videoContainer.value.requestFullscreen().catch(err => {
+            console.error(`Error attempting to enable fullscreen: ${err.message}`)
+        })
+    } else {
+        document.exitFullscreen()
     }
 }
 
@@ -320,47 +407,6 @@ const markComplete = async () => {
         }
     } catch (e) {
         console.error('Completion error:', e)
-    }
-}
-
-const videoContainer = ref(null)
-
-const togglePlay = () => {
-    if (!videoIframe.value) return
-    const command = isPlaying.value ? 'pauseVideo' : 'playVideo'
-    videoIframe.value.contentWindow.postMessage(JSON.stringify({
-        'event': 'command',
-        'func': command,
-        'args': []
-    }), '*')
-    isPlaying.value = !isPlaying.value // optimistically update
-}
-
-
-const playLesson = (lesson) => {
-    currentLesson.value = lesson
-    isPlaying.value = true // Assume autoplay
-}
-
-const getEmbedUrl = (id) => {
-    return `https://www.youtube.com/embed/${id}?autoplay=1&modestbranding=1&rel=0&enablejsapi=1&controls=1&fs=1`
-}
-
-const handleKeydown = (e) => {
-    if (e.key === 'f' || e.key === 'F') {
-        toggleFullscreen()
-    }
-}
-
-const toggleFullscreen = () => {
-    if (!videoContainer.value) return
-
-    if (!document.fullscreenElement) {
-        videoContainer.value.requestFullscreen().catch(err => {
-            console.error(`Error attempting to enable fullscreen: ${err.message}`)
-        })
-    } else {
-        document.exitFullscreen()
     }
 }
 </script>
