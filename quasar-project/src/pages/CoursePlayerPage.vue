@@ -47,10 +47,10 @@
 
             <!-- EXTRA SHIELDS: Block External Links -->
             <!-- Top Right: Blocks 'Share' and 'Watch Later' -->
-            <div class="absolute-top-right" style="width: 120px; height: 80px; z-index: 30; cursor: default;" @click.stop @contextmenu.prevent></div>
+            <div class="absolute-top-right" style="width: 30%; height: 25%; z-index: 30; cursor: default;" @click.stop @contextmenu.prevent></div>
             
             <!-- Bottom Right: Blocks 'YouTube' Logo -->
-            <div class="absolute-bottom-right" style="width: 160px; height: 60px; z-index: 30; cursor: default;" @click.stop @contextmenu.prevent></div>
+            <div class="absolute-bottom-right" style="width: 25%; height: 20%; z-index: 30; cursor: default;" @click.stop @contextmenu.prevent></div>
         </div>
 
         <div class="q-mt-md">
@@ -155,6 +155,7 @@ const currentUserId = ref(null)
 onMounted(async () => {
     // Listen for YouTube API messages
     window.addEventListener('message', handleMessage)
+    window.addEventListener('keydown', handleKeydown)
 
     const courseId = route.params.id
     if (!courseId) return
@@ -273,6 +274,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
     window.removeEventListener('message', handleMessage)
+    window.removeEventListener('keydown', handleKeydown)
 })
 
 const handleMessage = async (event) => {
@@ -342,6 +344,24 @@ const playLesson = (lesson) => {
 
 const getEmbedUrl = (id) => {
     return `https://www.youtube.com/embed/${id}?autoplay=1&modestbranding=1&rel=0&enablejsapi=1&controls=1&fs=1`
+}
+
+const handleKeydown = (e) => {
+    if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen()
+    }
+}
+
+const toggleFullscreen = () => {
+    if (!videoContainer.value) return
+
+    if (!document.fullscreenElement) {
+        videoContainer.value.requestFullscreen().catch(err => {
+            console.error(`Error attempting to enable fullscreen: ${err.message}`)
+        })
+    } else {
+        document.exitFullscreen()
+    }
 }
 </script>
 <style scoped>
