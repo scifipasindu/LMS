@@ -15,7 +15,7 @@
              >
                 <div class="absolute-full bg-black-grad flex flex-center column q-px-xl text-center">
                     <h2 class="text-h2 text-weight-bold text-white q-mb-sm">{{ course.title }}</h2>
-                    <div class="text-subtitle1 text-grey-4 q-mb-lg">{{ course.category || 'General' }} • {{ lessons.length }} Lessons</div>
+                    <div class="text-subtitle1 text-grey-4 q-mb-lg">{{ course.category || 'General' }} • {{ subjects.reduce((acc, s) => acc + s.units.reduce((uAcc, u) => uAcc + u.lessons.length, 0), 0) }} Lessons</div>
                     
                     <q-btn 
                         push 
@@ -42,28 +42,80 @@
                     <q-separator class="q-my-xl" />
                     
                     <div class="text-h5 text-weight-bold q-mb-md">Course Content</div>
-                    <q-list bordered separator class="rounded-borders" :dark="$q.dark.isActive">
-                        <q-item v-for="(lesson, index) in lessons" :key="lesson.id" clickable v-ripple :to="`/dashboard/course/${course.id}/learn`">
-                            <q-item-section avatar>
-                                <q-avatar color="primary" text-color="white" size="sm">{{ index + 1 }}</q-avatar>
-                            </q-item-section>
-                            
-                            <q-item-section>
-                                <q-item-label class="text-weight-bold">{{ lesson.title }}</q-item-label>
-                                <q-item-label caption class="text-grey">Video Lesson</q-item-label>
-                            </q-item-section>
-                            
-                            <q-item-section side>
-                                <q-icon name="play_circle_outline" color="grey" />
-                            </q-item-section>
-                        </q-item>
-                        
-                        <q-item v-if="lessons.length === 0">
-                            <q-item-section class="text-grey text-center q-pa-md">
-                                No lessons added yet.
-                            </q-item-section>
-                        </q-item>
-                    </q-list>
+                    
+                    <div v-if="subjects.length === 0" class="text-grey q-pa-md border-dashed rounded-borders text-center">
+                        No content uploaded yet.
+                    </div>
+
+                    <div v-for="(subject, sIndex) in subjects" :key="subject.id" class="q-mb-md">
+                        <q-expansion-item
+                            group="subjects"
+                            :default-opened="sIndex === 0"
+                            :header-class="`${$q.dark.isActive ? 'bg-grey-9 text-white' : 'bg-grey-2 text-dark'} text-weight-bold text-subtitle1 rounded-borders`"
+                            :expand-icon-class="$q.dark.isActive ? 'text-white' : 'text-grey-7'"
+                            class="overflow-hidden rounded-borders shadow-1"
+                            :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'"
+                        >
+                            <template v-slot:header>
+                                 <q-item-section>
+                                     {{ subject.title }}
+                                 </q-item-section>
+                                 <q-item-section side>
+                                     <q-badge :color="$q.dark.isActive ? 'grey-8' : 'grey-3'" :text-color="$q.dark.isActive ? 'white' : 'dark'">{{ subject.units?.length || 0 }} Units</q-badge>
+                                 </q-item-section>
+                            </template>
+
+                            <div class="q-pa-sm" :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
+                                 <div v-for="(unit, uIndex) in subject.units" :key="unit.id" class="q-mb-sm">
+                                     <q-expansion-item
+                                        group="units"
+                                        :default-opened="uIndex === 0"
+                                        :header-class="`${$q.dark.isActive ? 'bg-grey-8 text-white' : 'bg-grey-1 text-dark'} text-weight-medium rounded-borders`"
+                                        dense
+                                        :expand-icon-class="$q.dark.isActive ? 'text-white' : 'text-grey-7'"
+                                     >
+                                        <template v-slot:header>
+                                            <q-item-section avatar>
+                                                <q-icon name="article" color="primary" />
+                                            </q-item-section>
+                                            <q-item-section>
+                                                {{ unit.title }}
+                                            </q-item-section>
+                                            <q-item-section side>
+                                                <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey'">{{ unit.lessons?.length || 0 }} Videos</div>
+                                            </q-item-section>
+                                        </template>
+
+                                        <q-list separator class="q-pl-lg" :dark="$q.dark.isActive">
+                                            <q-item 
+                                                v-for="(lesson) in unit.lessons" 
+                                                :key="lesson.id" 
+                                                clickable 
+                                                v-ripple 
+                                                :to="`/dashboard/course/${course.id}/learn`"
+                                                class="rounded-borders"
+                                            >
+                                                <q-item-section avatar style="min-width: 30px">
+                                                     <q-icon name="play_circle_outline" color="primary" size="sm" />
+                                                </q-item-section>
+                                                <q-item-section>
+                                                    <q-item-label class="text-body2" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ lesson.title }}</q-item-label>
+                                                    <q-item-label caption :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey'">Video Lesson</q-item-label>
+                                                </q-item-section>
+                                                <q-item-section side>
+                                                    <!-- Optional: show duration if available -->
+                                                    <q-icon name="chevron_right" :color="$q.dark.isActive ? 'grey-5' : 'grey-5'" />
+                                                </q-item-section>
+                                            </q-item>
+                                            <q-item v-if="unit.lessons?.length === 0">
+                                                <q-item-section class="text-grey text-caption q-py-sm">No videos in this unit.</q-item-section>
+                                            </q-item>
+                                        </q-list>
+                                     </q-expansion-item>
+                                 </div>
+                            </div>
+                        </q-expansion-item>
+                    </div>
                 </div>
 
                 <!-- Right Column: Info Card -->
@@ -106,6 +158,7 @@ const route = useRoute()
 const loading = ref(true)
 const course = ref({})
 const lessons = ref([])
+const subjects = ref([])
 const instructor = ref(null)
 
 onMounted(async () => {
@@ -117,11 +170,31 @@ onMounted(async () => {
 
 const fetchCourseDetails = async (id) => {
     try {
-        const { data, error } = await supabase.from('courses').select('*, lessons(*)').eq('id', id).single()
+        const { data, error } = await supabase.from('courses').select('*').eq('id', id).single()
         if (error) throw error
-        
         course.value = data
-        lessons.value = data.lessons?.sort((a,b) => new Date(a.created_at) - new Date(b.created_at)) || []
+        
+        // FETCH HIERARCHY
+        const { data: sData, error: sError } = await supabase.from('subjects')
+            .select('*, units:course_units(*, lessons(*))')
+            .eq('course_id', id)
+            .order('created_at', { ascending: true })
+
+        if (sError) throw sError
+
+        // Process & Sort
+        subjects.value = (sData || []).map(sub => ({
+            ...sub,
+            units: (sub.units || []).sort((a,b) => new Date(a.created_at) - new Date(b.created_at)).map(u => ({
+                 ...u,
+                 lessons: (u.lessons || []).sort((a,b) => new Date(a.created_at) - new Date(b.created_at))
+            }))
+        }))
+        
+
+        
+        // Legacy support (if no subjects found, try flat fetch just in case, or show 0)
+        lessons.value = [] // clear legacy
         
         if (data.teacher_id) {
             const { data: teacher } = await supabase.from('profiles').select('full_name').eq('id', data.teacher_id).single()

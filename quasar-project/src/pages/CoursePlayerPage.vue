@@ -47,7 +47,12 @@
         </div>
 
         <div class="q-mt-md">
-            <div class="text-h6 text-primary">{{ currentLesson?.title || 'Course Intro' }}</div>
+            <div class="row justify-between items-center">
+                <div class="text-h6 text-primary">{{ currentLesson?.title || 'Course Intro' }}</div>
+                <div v-if="currentLesson?.completed" class="text-positive text-subtitle2 flex items-center">
+                    <q-icon name="check_circle" class="q-mr-xs" /> Completed
+                </div>
+            </div>
             <div class="text-caption text-grey-5">{{ course.description }}</div>
         </div>
     </div>
@@ -57,31 +62,64 @@
         <div class="text-subtitle1 text-weight-bold q-mb-md text-uppercase text-grey-6 px-2">Course Payload</div>
         
         <q-scroll-area style="height: calc(100vh - 100px);">
-            <q-list separator dark>
-                <q-item 
-                    v-for="(lesson, index) in lessons" 
-                    :key="lesson.id" 
-                    clickable 
-                    v-ripple 
-                    :active="currentLesson?.id === lesson.id"
-                    active-class="bg-primary-glass text-white"
-                    @click="playLesson(lesson)"
-                    class="rounded-borders q-mb-xs"
+            <div v-for="(subject, sIndex) in subjects" :key="subject.id" class="q-mb-sm">
+                <q-expansion-item
+                    group="subjects"
+                    :default-opened="sIndex === 0"
+                    header-class="bg-dark text-weight-bold text-subtitle1"
+                    expand-icon-class="text-grey"
+                    dense
                 >
-                    <q-item-section avatar>
-                        <q-avatar size="sm" :color="currentLesson?.id === lesson.id ? 'accent' : 'grey-8'" text-color="white">
-                            {{ index + 1 }}
-                        </q-avatar>
-                    </q-item-section>
-                    <q-item-section>
-                        <q-item-label class="text-subtitle2">{{ lesson.title }}</q-item-label>
-                        <q-item-label caption class="text-grey-5">Video</q-item-label>
-                    </q-item-section>
-                    <q-item-section side v-if="currentLesson?.id === lesson.id">
-                        <q-icon name="play_circle" color="accent" />
-                    </q-item-section>
-                </q-item>
-            </q-list>
+                    <template v-slot:header>
+                         <q-item-section>
+                             {{ subject.title }}
+                         </q-item-section>
+                    </template>
+
+                    <div class="q-pl-sm">
+                         <div v-for="(unit, uIndex) in subject.units" :key="unit.id" class="q-mb-xs">
+                             <q-expansion-item
+                                group="units"
+                                :default-opened="uIndex === 0"
+                                header-class="text-grey-4 text-subtitle2"
+                                dense
+                             >
+                                <template v-slot:header>
+                                    <q-item-section>
+                                        {{ unit.title }}
+                                    </q-item-section>
+                                </template>
+
+                                <q-list separator dark class="q-pl-sm">
+                                    <q-item 
+                                        v-for="(lesson) in unit.lessons" 
+                                        :key="lesson.id" 
+                                        clickable 
+                                        v-ripple 
+                                        :active="currentLesson?.id === lesson.id"
+                                        active-class="bg-primary-glass text-white"
+                                        @click="playLesson(lesson)"
+                                        class="rounded-borders q-mb-xs"
+                                        dense
+                                    >
+                                        <q-item-section avatar style="min-width: 30px">
+                                             <q-icon v-if="lesson.completed" name="check_circle" color="positive" size="xs" />
+                                             <q-icon v-else name="play_circle_outline" size="xs" :color="currentLesson?.id === lesson.id ? 'accent' : 'grey-7'" />
+                                        </q-item-section>
+                                        <q-item-section>
+                                            <q-item-label class="text-body2">{{ lesson.title }}</q-item-label>
+                                        </q-item-section>
+                                    </q-item>
+                                </q-list>
+                             </q-expansion-item>
+                         </div>
+                    </div>
+                </q-expansion-item>
+            </div>
+            
+            <div v-if="subjects.length === 0 && lessons.length === 0" class="text-grey text-center q-pa-md">
+                No content available.
+            </div>
         </q-scroll-area>
     </div>
   </q-page>
@@ -99,11 +137,13 @@ const $q = useQuasar()
 const loading = ref(true)
 const course = ref({})
 const lessons = ref([])
+const subjects = ref([]) // NEW
 const currentLesson = ref(null)
 const videoIframe = ref(null)
 const isPlaying = ref(false)
 const hasAccess = ref(false)
 const checkingAccess = ref(true)
+const currentUserId = ref(null)
 
 onMounted(async () => {
     // Listen for YouTube API messages
@@ -123,6 +163,7 @@ onMounted(async () => {
              router.push('/login')
              return
         }
+        currentUserId.value = user.id
 
         // Check if Admin
         const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
@@ -152,18 +193,71 @@ onMounted(async () => {
         if (cError) throw cError
         course.value = cData
 
-        // Fetch Lessons
-        const { data: lData, error: lError } = await supabase.from('lessons').select('*').eq('course_id', courseId).order('created_at', { ascending: true })
-        if (lError) throw lError
-        lessons.value = lData || []
+        // FETCH HIERARCHY
+        const { data: sData, error: sError } = await supabase.from('subjects')
+            .select('*, units:course_units(*, lessons(*))')
+            .eq('course_id', courseId)
+            .order('created_at', { ascending: true }) // Subject Order
+
+        if (sError) throw sError
+
+        // Process Hierarchy & Flatten for Playlist
+        const rawSubjects = sData || []
+        const flatList = []
+        
+        // Sort & Assign
+        subjects.value = rawSubjects.map(sub => {
+            const units = (sub.units || []).sort((a,b) => new Date(a.created_at) - new Date(b.created_at))
+            
+            return {
+                ...sub,
+                units: units.map(unit => {
+                    const unitLessons = (unit.lessons || []).sort((a,b) => new Date(a.created_at) - new Date(b.created_at))
+                    // Add to flat list for auto-play logic
+                    unitLessons.forEach(l => flatList.push(l))
+                    return {
+                        ...unit,
+                        lessons: unitLessons
+                    }
+                })
+            }
+        })
+        
+        lessons.value = flatList // Keep a flat reference for completions logic
+
+        // Fetch Completions
+        const { data: completions } = await supabase.from('lesson_completions')
+            .select('lesson_id')
+            .eq('user_id', user.id)
+            
+        const completedIds = new Set((completions || []).map(c => c.lesson_id))
+
+        // Mark completions in hierarchy
+        subjects.value.forEach(sub => {
+            sub.units.forEach(unit => {
+                unit.lessons.forEach(l => {
+                    l.completed = completedIds.has(l.id)
+                })
+            })
+        })
+        
+        // Also update flat list
+        lessons.value.forEach(l => l.completed = completedIds.has(l.id))
 
         // Auto-play first lesson
         if (lessons.value.length > 0) {
             currentLesson.value = lessons.value[0]
+            // Expand first subject/unit
+            if (subjects.value[0]) {
+                 subjects.value[0].expanded = true
+                 if (subjects.value[0].units[0]) {
+                     subjects.value[0].units[0].expanded = true
+                 }
+            }
         }
     } catch (err) {
         console.error(err)
-        $q.notify({ type: 'negative', message: 'Failed to load course' })
+        $q.notify({ type: 'negative', message: 'Failed to load course content' })
     } finally {
         loading.value = false
         checkingAccess.value = false
@@ -174,7 +268,7 @@ onBeforeUnmount(() => {
     window.removeEventListener('message', handleMessage)
 })
 
-const handleMessage = (event) => {
+const handleMessage = async (event) => {
     // Basic state tracking from YouTube events
     try {
         const data = JSON.parse(event.data)
@@ -182,9 +276,41 @@ const handleMessage = (event) => {
              // 1 = playing, 2 = paused, 0 = ended
              if (data.info.playerState === 1) isPlaying.value = true
              else if (data.info.playerState === 2) isPlaying.value = false
+             else if (data.info.playerState === 0) {
+                 // Video Ended
+                 isPlaying.value = false
+                 await markComplete()
+             }
         }
     } catch {
         // ignore non-json messages
+    }
+}
+
+const markComplete = async () => {
+    if (!currentLesson.value || currentLesson.value.completed) return
+
+    try {
+        const { error } = await supabase.from('lesson_completions').insert([{
+            user_id: currentUserId.value,
+            lesson_id: currentLesson.value.id
+        }])
+
+        if (!error || error.code === '23505') { // Success or duplicate
+            currentLesson.value.completed = true
+            // Update in list
+            const idx = lessons.value.findIndex(l => l.id === currentLesson.value.id)
+            if (idx !== -1) lessons.value[idx].completed = true
+            
+            $q.notify({ 
+                type: 'positive', 
+                message: 'Lesson Completed!', 
+                position: 'top', 
+                timeout: 2000 
+            })
+        }
+    } catch (e) {
+        console.error('Completion error:', e)
     }
 }
 

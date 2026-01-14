@@ -460,8 +460,8 @@ const defaultSettings = {
       about: { 
          title: 'About Us', 
          image: 'https://images.unsplash.com/photo-1544531586-fde5298cdd40?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80', 
-         description: 'OnlineClass.edu.lk is designed to bridge the gap between technology and education.', 
-         btnText: 'Read More', 
+         description: 'Welcome to the future of education. We provide a comprehensive, all-in-one platform designed to streamline institute management and enhance the learning experience. From smart attendance to automated results, we empower educators and students alike.', 
+         btnText: 'Learn More', 
          btnUrl: '#' 
       },
       contact: { phone1: '', phone2: '', whatsapp: '', telegram: '', email: '', website: '' }

@@ -79,18 +79,8 @@
             </q-item-section>
             <q-item-section>Dashboard</q-item-section>
           </q-item>
-          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/pages" active-class="active-item">
-            <q-item-section avatar>
-              <q-icon name="article" />
-            </q-item-section>
-            <q-item-section>Pages</q-item-section>
-          </q-item>
-          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/guides" active-class="active-item">
-            <q-item-section avatar>
-              <q-icon name="help_outline" />
-            </q-item-section>
-            <q-item-section>Guides</q-item-section>
-          </q-item>
+
+
         </q-list>
 
         <!-- ACADEMIC -->
@@ -143,12 +133,7 @@
             </q-item-section>
             <q-item-section>Payments</q-item-section>
           </q-item>
-          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/permissions" active-class="active-item">
-            <q-item-section avatar>
-              <q-icon name="lock" />
-            </q-item-section>
-            <q-item-section>Permissions</q-item-section>
-          </q-item>
+
         </q-list>
 
         <!-- USERS (Admin & Staff) -->
@@ -195,18 +180,7 @@
         </q-list>
       </div>
       
-      <!-- User Mini Profile at bottom -->
-      <div class="absolute-bottom q-pa-md">
-         <div class="glass-card-mini row items-center q-pa-sm">
-            <q-avatar size="36px" class="q-mr-sm">
-               <img src="https://cdn.quasar.dev/img/boy-avatar.png">
-            </q-avatar>
-            <div class="column">
-               <div class="text-subtitle2 text-white leading-tight">{{ userRole }}</div>
-               <div class="text-caption text-accent" style="font-size: 10px;">PRO MEMBER</div>
-            </div>
-         </div>
-      </div>
+
     </q-drawer>
 
     <q-page-container class="bg-dark-page">

@@ -94,6 +94,21 @@
                     </div>
                  </div>
 
+                  <!-- Student Grade Selection -->
+                  <div class="row q-col-gutter-md q-mt-none" v-if="profile.role === 'student' || isAdmin">
+                     <div class="col-12 col-md-6">
+                        <q-select
+                            filled
+                            :dark="$q.dark.isActive"
+                            v-model="profile.grade"
+                            :options="['1','2','3','4','5','6','7','8','9','10','11','12','13']"
+                            label="Your Grade/Year"
+                            hint="Select your current grade"
+                            class="input-dynamic"
+                        />
+                     </div>
+                  </div>
+
                   <q-separator :dark="$q.dark.isActive" class="q-my-lg" />
                   
                   <template v-if="!isEditingOther">
@@ -316,7 +331,8 @@ const profile = ref({
     role: '',
     phone: '',
     bio: '',
-    security_pin: ''
+    security_pin: '',
+    grade: ''
 })
 
 const initialPin = ref('') // Track initial PIN state
@@ -634,7 +650,8 @@ const updateProfile = async () => {
                 phone: profile.value.phone,
                 bio: profile.value.bio,
                 security_pin: profile.value.security_pin,
-                role: profile.value.role
+                role: profile.value.role,
+                grade: profile.value.grade
             })
             .eq('id', profile.value.id)
 

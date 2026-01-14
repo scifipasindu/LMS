@@ -26,18 +26,8 @@
             </q-item-section>
             <q-item-section>Dashboard</q-item-section>
           </q-item>
-          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/pages" active-class="active-item">
-            <q-item-section avatar>
-              <q-icon name="article" />
-            </q-item-section>
-            <q-item-section>Pages</q-item-section>
-          </q-item>
-          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/guides" active-class="active-item">
-            <q-item-section avatar>
-              <q-icon name="help_outline" />
-            </q-item-section>
-            <q-item-section>Guides</q-item-section>
-          </q-item>
+
+
         </q-list>
 
         <!-- ACADEMIC -->
@@ -90,12 +80,7 @@
             </q-item-section>
             <q-item-section>Payments</q-item-section>
           </q-item>
-          <q-item v-if="isAdmin" clickable v-ripple to="/dashboard/permissions" active-class="active-item">
-            <q-item-section avatar>
-              <q-icon name="lock" />
-            </q-item-section>
-            <q-item-section>Permissions</q-item-section>
-          </q-item>
+
         </q-list>
 
         <!-- USERS -->

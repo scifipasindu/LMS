@@ -31,6 +31,48 @@ export default defineRouter(function (/* { store, ssrContext } */) {
 
   // Auth & Role Guard
   Router.beforeEach(async (to, from, next) => {
+    
+    // --- MAINTENANCE MODE CHECK ---
+    // Allow direct access to maintenance page to avoid loops
+    if (to.path !== '/maintenance') {
+        const { supabase } = await import('boot/supabase')
+        
+        try {
+          // Fetch Settings
+          const { data: settings, error } = await supabase
+               .from('system_settings')
+               .select('value')
+               .eq('key', 'config')
+               .single()
+
+          if (!error && settings?.value?.general?.maintenanceMode === true) {
+               // Check if user is admin (allow admins to bypass)
+               const { data: { user } } = await supabase.auth.getUser()
+               let isAdmin = false
+               
+               if (user) {
+                   const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single()
+                   
+                   if (profile?.role === 'admin') isAdmin = true
+               }
+
+               // If not admin and not trying to login -> Redirect to Maintenance
+               if (!isAdmin && to.path !== '/login') {
+                   // Avoid infinite redirect if already going there
+                   next('/maintenance')
+                   return
+               }
+          }
+        } catch (err) {
+          console.error('Maintenance Check Failed:', err)
+          // Default to allowing access if check fails to avoid lockout
+        }
+    }
+
     // Requires Auth check
     if (to.matched.some(record => record.meta.requiresAuth)) {
       const { supabase } = await import('boot/supabase')

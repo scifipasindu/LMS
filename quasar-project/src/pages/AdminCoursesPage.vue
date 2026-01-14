@@ -20,8 +20,11 @@
                          <q-badge outline color="primary" class="q-ml-sm">{{ course.profiles?.full_name || 'Unknown' }}</q-badge>
                     </div>
                     <div class="text-h6 q-mb-xs">{{ course.title }}</div>
+                    <div class="row items-center q-gutter-x-sm q-mb-xs">
+                        <q-badge color="secondary" outline v-if="course.grade">Grade {{ course.grade }}</q-badge>
+                        <q-chip dense outline color="grey-6" size="sm" icon="library_books">{{ course.lessons?.length || 0 }} Lessons</q-chip>
+                    </div>
                     <div class="text-caption text-grey-5 ellipsis-2-lines">{{ course.description }}</div>
-                    <q-chip dense outline color="grey-6" size="sm" icon="library_books" class="q-mt-sm">{{ course.lessons?.length || 0 }} Lessons</q-chip>
                 </q-card-section>
                 <q-card-actions class="q-mt-auto row justify-between">
                     <div>
@@ -49,7 +52,7 @@
 
     <!-- ADD/EDIT COURSE DIALOG -->
     <q-dialog v-model="showCourseDialog" persistent>
-        <q-card style="min-width: 500px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
+        <q-card style="min-width: 600px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
             <q-bar class="q-py-md" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-3'">
                 <div class="text-h6">{{ isEditing ? 'Edit Course' : 'Create New Course' }}</div>
                 <q-space />
@@ -58,10 +61,22 @@
 
             <q-card-section class="q-gutter-y-md q-pt-md">
                 <div class="row q-col-gutter-sm">
-                    <div class="col-12 col-md-8">
+                    <div class="col-12">
                          <q-input filled :dark="$q.dark.isActive" v-model="courseForm.title" label="Course Title" :rules="[val => !!val || 'Required']" />
                     </div>
-                     <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-6">
+                        <q-select
+                            filled
+                            :dark="$q.dark.isActive"
+                            v-model="courseForm.grade"
+                            :options="[1,2,3,4,5,6,7,8,9,10,11,12,13]"
+                            label="Grade"
+                            hint="Class/Year"
+                            multiple
+                            use-chips
+                        />
+                    </div>
+                     <div class="col-12 col-md-6">
                         <q-select
                             filled
                             :dark="$q.dark.isActive"
@@ -156,37 +171,109 @@
         </q-card>
     </q-dialog>
 
-    <!-- LESSON MANAGER DIALOG -->
+    <!-- CONTENT MANAGER DIALOG (Subjects > Units > Lessons) -->
     <q-dialog v-model="showLessonDialog" maximized transition-show="slide-up" transition-hide="slide-down">
         <q-card :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
             <q-bar class="q-py-md" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-3'">
                 <q-btn dense flat icon="arrow_back" v-close-popup />
-                <div class="text-h6 q-ml-md">Manage Videos: {{ selectedCourse?.title }}</div>
+                <div class="text-h6 q-ml-md">Manage Content: {{ selectedCourse?.title }}</div>
                 <q-space />
-                <q-btn color="accent" icon="add" label="Add Video" @click="showAddVideo = true" />
             </q-bar>
             
             <q-card-section class="q-pa-lg">
-                <q-list :dark="$q.dark.isActive" separator bordered class="rounded-borders">
-                    <q-item v-for="(lesson, index) in lessons" :key="lesson.id" class="q-py-md">
-                        <q-item-section avatar>
-                            <q-avatar color="primary" text-color="white">{{ index + 1 }}</q-avatar>
-                        </q-item-section>
-                        <q-item-section>
-                            <q-item-label class="text-h6">{{ lesson.title }}</q-item-label>
-                            <q-item-label caption class="text-grey-5">Video ID: {{ lesson.video_id }}</q-item-label>
-                        </q-item-section>
-                        <q-item-section side>
-                            <div class="row q-gutter-sm">
-                                <q-btn flat round icon="play_circle" color="accent" @click="previewVideo(lesson.video_id)" />
-                                <q-btn flat round icon="delete" color="negative" @click="deleteLesson(lesson.id)" />
-                            </div>
-                        </q-item-section>
-                    </q-item>
-                    <q-item v-if="lessons.length === 0">
-                        <q-item-section class="text-center text-grey">No videos added yet.</q-item-section>
-                    </q-item>
-                </q-list>
+                <!-- Breadcrumbs -->
+                <div class="row items-center q-mb-md text-h6">
+                     <span class="cursor-pointer text-primary" @click="resetToSubjects">Subjects</span>
+                     <q-icon name="chevron_right" v-if="currentSubject" />
+                     <span v-if="currentSubject" class="cursor-pointer text-primary" @click="resetToUnits(currentSubject)">{{ currentSubject.title }}</span>
+                     <q-icon name="chevron_right" v-if="currentUnit" />
+                     <span v-if="currentUnit" class="text-grey">{{ currentUnit.title }}</span>
+                </div>
+
+                <!-- VIEW: SUBJECTS LIST -->
+                <div v-if="!currentSubject">
+                    <div class="row items-center justify-between q-mb-md">
+                        <div class="text-h5">Subjects</div>
+                        <q-btn color="primary" icon="add" label="Add Subject" @click="promptAddSubject" />
+                    </div>
+                    <q-list :dark="$q.dark.isActive" separator bordered class="rounded-borders">
+                        <q-item v-for="subject in courseSubjects" :key="subject.id" clickable @click="selectSubject(subject)" v-ripple>
+                            <q-item-section avatar>
+                                <q-icon name="folder" color="warning" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-h6">{{ subject.title }}</q-item-label>
+                                <q-item-label caption>{{ subject.units_count || 0 }} Units</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row q-gutter-sm">
+                                    <q-btn flat round icon="edit" color="primary" @click.stop="promptEditSubject(subject)" />
+                                    <q-btn flat round icon="delete" color="negative" @click.stop="deleteSubject(subject.id)" />
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                         <q-item v-if="courseSubjects.length === 0">
+                            <q-item-section class="text-center text-grey">No subjects created.</q-item-section>
+                        </q-item>
+                    </q-list>
+                </div>
+
+                <!-- VIEW: UNITS LIST -->
+                <div v-else-if="currentSubject && !currentUnit">
+                    <div class="row items-center justify-between q-mb-md">
+                        <div class="text-h5">Units in {{ currentSubject.title }}</div>
+                        <q-btn color="primary" icon="add" label="Add Unit" @click="promptAddUnit" />
+                    </div>
+                    <q-list :dark="$q.dark.isActive" separator bordered class="rounded-borders">
+                        <q-item v-for="unit in subjectUnits" :key="unit.id" clickable @click="selectUnit(unit)" v-ripple>
+                            <q-item-section avatar>
+                                <q-icon name="article" color="secondary" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-h6">{{ unit.title }}</q-item-label>
+                                <q-item-label caption>{{ unit.lessons_count || 0 }} Videos</q-item-label>
+                            </q-item-section>
+                             <q-item-section side>
+                                <div class="row q-gutter-sm">
+                                    <q-btn flat round icon="edit" color="primary" @click.stop="promptEditUnit(unit)" />
+                                    <q-btn flat round icon="delete" color="negative" @click.stop="deleteUnit(unit.id)" />
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                         <q-item v-if="subjectUnits.length === 0">
+                            <q-item-section class="text-center text-grey">No units created.</q-item-section>
+                        </q-item>
+                    </q-list>
+                </div>
+
+                <!-- VIEW: LESSONS (VIDEOS) LIST -->
+                <div v-else-if="currentUnit">
+                    <div class="row items-center justify-between q-mb-md">
+                        <div class="text-h5">Videos in {{ currentUnit.title }}</div>
+                        <q-btn color="accent" icon="add" label="Add Video" @click="showAddVideo = true" />
+                    </div>
+                    <q-list :dark="$q.dark.isActive" separator bordered class="rounded-borders">
+                        <q-item v-for="(lesson, index) in lessons" :key="lesson.id" class="q-py-md">
+                            <q-item-section avatar>
+                                <q-avatar color="primary" text-color="white">{{ index + 1 }}</q-avatar>
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-h6">{{ lesson.title }}</q-item-label>
+                                <q-item-label caption class="text-grey-5">Video ID: {{ lesson.video_id }}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row q-gutter-sm">
+                                    <q-btn flat round icon="play_circle" color="accent" @click="previewVideo(lesson.video_id)" />
+                                    <q-btn flat round icon="delete" color="negative" @click="deleteLesson(lesson.id)" />
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                        <q-item v-if="lessons.length === 0">
+                            <q-item-section class="text-center text-grey">No videos added yet.</q-item-section>
+                        </q-item>
+                    </q-list>
+                </div>
+
             </q-card-section>
         </q-card>
     </q-dialog>
@@ -365,7 +452,7 @@ const isStaff = ref(false) // New State
 const showCourseDialog = ref(false)
 const isEditing = ref(false)
 const processing = ref(false)
-const courseForm = ref({ title: '', description: '', image_url: '', schedule: '', teacher_id: null, category: '' })
+const courseForm = ref({ title: '', description: '', image_url: '', schedule: '', teacher_id: null, category: '', grade: null })
 const editingId = ref(null)
 
 // Lesson CRUD
@@ -391,7 +478,7 @@ onMounted(() => {
 })
 
 const fetchSubjects = async () => {
-    const { data } = await supabase.from('subjects').select('name').order('name', { ascending: true })
+    const { data } = await supabase.from('course_categories').select('name').order('name', { ascending: true })
     if (data) {
         subjects.value = data.map(s => s.name)
     }
@@ -504,6 +591,18 @@ const saveCourse = async () => {
         processing.value = true
         try {
             const payload = { ...courseForm.value }
+            
+            // Format Grade: Array -> String "12-13"
+            if (Array.isArray(payload.grade)) {
+                if (payload.grade.length > 0) {
+                     // Sort numbers 
+                     const sorted = payload.grade.sort((a,b) => a - b)
+                     payload.grade = sorted.join('-')
+                } else {
+                     payload.grade = null
+                }
+            }
+
             let error = null
             if (isEditing.value) {
                 const { error: e } = await supabase.from('courses').update(payload).eq('id', editingId.value)
@@ -538,13 +637,31 @@ const editCourse = (course) => {
     isEditing.value = true
     editingId.value = course.id
     imageFile.value = null // Reset file input
+
+    // Handle Grade Parsing (Str -> Array)
+    let parsedGrade = []
+    if (course.grade) {
+        // If "12-13" -> [12, 13]
+        // If "12" -> [12]
+        // If "1,2" -> [1,2]
+        const str = String(course.grade)
+        if (str.includes('-')) {
+             parsedGrade = str.split('-').map(Number)
+        } else if (str.includes(',')) {
+             parsedGrade = str.split(',').map(Number)
+        } else {
+             parsedGrade = [Number(str)]
+        }
+    }
+
     courseForm.value = { 
         title: course.title, 
         description: course.description, 
         image_url: course.image_url,
         schedule: course.schedule,
         teacher_id: course.teacher_id,
-        category: course.category
+        category: course.category,
+        grade: parsedGrade.length > 0 ? parsedGrade : null
     }
     showCourseDialog.value = true
 }
@@ -553,19 +670,147 @@ const openNewCourse = () => {
     isEditing.value = false
     editingId.value = null
     imageFile.value = null // Reset file input
-    courseForm.value = { title: '', description: '', image_url: '', schedule: '', teacher_id: null, category: '' }
+    courseForm.value = { title: '', description: '', image_url: '', schedule: '', teacher_id: null, category: '', grade: [] }
     showCourseDialog.value = true
 }
 
-// VIDEO MANAGEMENT
+const courseSubjects = ref([])
+const subjectUnits = ref([])
+const currentSubject = ref(null)
+const currentUnit = ref(null)
+
 const openLessonManager = async (course) => {
     selectedCourse.value = course
-    await fetchLessons(course.id)
+    await loadSubjects(course.id)
+    currentSubject.value = null
+    currentUnit.value = null
     showLessonDialog.value = true
 }
 
-const fetchLessons = async (courseId) => {
-    const { data } = await supabase.from('lessons').select('*').eq('course_id', courseId).order('created_at', { ascending: true })
+// 1. SUBJECTS LOGIC
+const loadSubjects = async (courseId) => {
+    const { data } = await supabase.from('subjects')
+        .select('*, units:course_units(count)')
+        .eq('course_id', courseId)
+        .order('created_at', { ascending: true })
+        
+    courseSubjects.value = (data || []).map(s => ({
+        ...s,
+        units_count: s.units?.[0]?.count || 0
+    }))
+}
+
+const promptAddSubject = () => {
+    const name = prompt("Enter Subject Name:")
+    if (!name) return
+    createSubject(name)
+}
+
+const promptEditSubject = (subject) => {
+    const name = prompt("Rename Subject:", subject.title)
+    if (!name || name === subject.title) return
+    updateSubject(subject.id, name)
+}
+
+const createSubject = async (title) => {
+    const { error } = await supabase.from('subjects').insert([{
+        course_id: selectedCourse.value.id,
+        title
+    }])
+    if (!error) {
+        $q.notify({ type: 'positive', message: 'Subject created' })
+        loadSubjects(selectedCourse.value.id)
+    }
+}
+
+const updateSubject = async (id, title) => {
+    const { error } = await supabase.from('subjects').update({ title }).eq('id', id)
+    if (!error) {
+        $q.notify({ type: 'positive', message: 'Subject updated' })
+        loadSubjects(selectedCourse.value.id)
+    }
+}
+
+const deleteSubject = async (id) => {
+    if (!confirm('Delete this Subject and ALL units/videos inside it?')) return
+    const { error } = await supabase.from('subjects').delete().eq('id', id)
+    if (!error) loadSubjects(selectedCourse.value.id)
+}
+
+const selectSubject = async (subject) => {
+    currentSubject.value = subject
+    currentUnit.value = null
+    // Load Units
+    const { data } = await supabase.from('course_units')
+        .select('*, lessons(count)')
+        .eq('subject_id', subject.id)
+        .order('created_at', { ascending: true })
+        
+    subjectUnits.value = (data || []).map(u => ({
+        ...u,
+        lessons_count: u.lessons?.[0]?.count || 0
+    }))
+}
+
+const resetToSubjects = () => {
+    currentSubject.value = null
+    currentUnit.value = null
+}
+
+// 2. UNITS LOGIC
+const promptAddUnit = () => {
+    const name = prompt("Enter Unit Name:")
+    if (!name) return
+    createUnit(name)
+}
+
+const promptEditUnit = (unit) => {
+    const name = prompt("Rename Unit:", unit.title)
+    if (!name || name === unit.title) return
+    updateUnit(unit.id, name)
+}
+
+const createUnit = async (title) => {
+    const { error } = await supabase.from('course_units').insert([{
+        subject_id: currentSubject.value.id,
+        title
+    }])
+    if (!error) {
+        $q.notify({ type: 'positive', message: 'Unit created' })
+        selectSubject(currentSubject.value) // Reload
+    }
+}
+
+const updateUnit = async (id, title) => {
+    const { error } = await supabase.from('course_units').update({ title }).eq('id', id)
+    if (!error) {
+        $q.notify({ type: 'positive', message: 'Unit updated' })
+        selectSubject(currentSubject.value) // Reload
+    }
+}
+
+const deleteUnit = async (id) => {
+    if (!confirm('Delete this Unit and ALL videos inside it?')) return
+    const { error } = await supabase.from('course_units').delete().eq('id', id)
+    if (!error) selectSubject(currentSubject.value)
+}
+
+const selectUnit = async (unit) => {
+    currentUnit.value = unit
+    fetchLessons(unit.id)
+}
+
+const resetToUnits = (subject) => {
+    currentSubject.value = subject
+    currentUnit.value = null
+}
+
+// 3. LESSONS LOGIC (Modified to use Unit ID)
+const fetchLessons = async (unitId) => {
+    const { data } = await supabase.from('lessons')
+        .select('*')
+        .eq('unit_id', unitId)
+        .order('created_at', { ascending: true }) // You might want sequence_order later
     lessons.value = data || []
 }
 
@@ -590,7 +835,7 @@ const saveLesson = async () => {
         const cleanId = extractVideoId(videoForm.value.video_id)
 
         const { error } = await supabase.from('lessons').insert([{
-            course_id: selectedCourse.value.id,
+            unit_id: currentUnit.value.id, // CHANGED: Link to Unit
             title: videoForm.value.title,
             video_id: cleanId
         }])
@@ -599,7 +844,7 @@ const saveLesson = async () => {
         $q.notify({ type: 'positive', message: 'Video Added!' })
         videoForm.value = { title: '', video_id: '' }
         showAddVideo.value = false
-        fetchLessons(selectedCourse.value.id)
+        fetchLessons(currentUnit.value.id)
     } catch (err) {
         console.error(err)
         $q.notify({ type: 'negative', message: 'Failed to add video' })
@@ -611,7 +856,7 @@ const saveLesson = async () => {
 const deleteLesson = async (id) => {
     if(!confirm('Remove this video?')) return
     const { error } = await supabase.from('lessons').delete().eq('id', id)
-    if (!error) fetchLessons(selectedCourse.value.id)
+    if (!error) fetchLessons(currentUnit.value.id)
 }
 
 // STAFF ASSIGNMENT LOGIC

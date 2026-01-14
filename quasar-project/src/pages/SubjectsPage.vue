@@ -96,7 +96,7 @@ onMounted(() => {
 const fetchSubjects = async () => {
   loading.value = true
   const { data, error } = await supabase
-    .from('subjects')
+    .from('course_categories')
     .select('*')
     .order('created_at', { ascending: false })
     
@@ -132,13 +132,13 @@ const saveSubject = async () => {
     
     if (isEditing.value) {
         const { error: updateError } = await supabase
-            .from('subjects')
+            .from('course_categories')
             .update(payload)
             .eq('id', form.value.id)
         error = updateError
     } else {
         const { error: insertError } = await supabase
-            .from('subjects')
+            .from('course_categories')
             .insert([payload])
         error = insertError
     }
@@ -167,7 +167,7 @@ const deleteSubject = async (id) => {
 
   try {
     const { error } = await supabase
-      .from('subjects')
+      .from('course_categories')
       .delete()
       .eq('id', id)
       

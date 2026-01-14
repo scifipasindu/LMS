@@ -22,6 +22,7 @@
           no-caps
        >
           <q-tab name="student" label="Student Login" icon="school" />
+          <q-tab name="instructor" label="Instructor Login" icon="cast_for_education" />
           <q-tab name="staff" label="Staff Login" icon="badge" />
           <q-tab name="admin" label="Admin Login" icon="admin_panel_settings" />
        </q-tabs>

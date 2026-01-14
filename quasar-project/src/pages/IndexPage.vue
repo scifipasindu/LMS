@@ -189,15 +189,24 @@
                <q-list class="q-mb-lg">
                   <q-item>
                      <q-item-section avatar><q-icon name="check_circle" color="secondary" /></q-item-section>
-                     <q-item-section :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'">Automated Workflows</q-item-section>
+                     <q-item-section :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'">
+                        <div class="text-weight-bold">Streamlined Operations</div>
+                        <div class="text-caption">Automate tasks and focus on teaching.</div>
+                     </q-item-section>
                   </q-item>
                    <q-item>
-                     <q-item-section avatar><q-icon name="check_circle" color="secondary" /></q-item-section>
-                     <q-item-section :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'">Secure Data Management</q-item-section>
+                     <q-item-section avatar><q-icon name="verified_user" color="secondary" /></q-item-section>
+                     <q-item-section :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'">
+                        <div class="text-weight-bold">Enterprise Security</div>
+                        <div class="text-caption">Keep your data safe with advanced encryption.</div>
+                     </q-item-section>
                   </q-item>
                    <q-item>
-                     <q-item-section avatar><q-icon name="check_circle" color="secondary" /></q-item-section>
-                     <q-item-section :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'">Easy Mobile Access</q-item-section>
+                     <q-item-section avatar><q-icon name="smartphone" color="secondary" /></q-item-section>
+                     <q-item-section :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'">
+                        <div class="text-weight-bold">Anywhere Access</div>
+                        <div class="text-caption">Learn and manage from any device, anytime.</div>
+                     </q-item-section>
                   </q-item>
                </q-list>
                
@@ -274,8 +283,8 @@ const config = reactive({
     about: { 
        title: 'About Us', 
        image: 'https://images.unsplash.com/photo-1544531586-fde5298cdd40?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80', 
-       description: 'OnlineClass.edu.lk is designed to bridge the gap between technology and education.', 
-       btnText: 'Read More', 
+       description: 'Welcome to the future of education. We provide a comprehensive, all-in-one platform designed to streamline institute management and enhance the learning experience. From smart attendance to automated results, we empower educators and students alike.', 
+       btnText: 'Learn More', 
        btnUrl: '#' 
     },
     contact: { phone1: '', phone2: '', whatsapp: '', telegram: '', email: '', website: '' }
