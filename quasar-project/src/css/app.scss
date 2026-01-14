@@ -1,1 +1,30 @@
 // app global css in SCSS form
+
+// Fix for browser autofill background
+// Uses a long transition delay to prevent the browser from applying the default white background
+// This effectively keeps the input background transparent
+.body--dark {
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus, 
+  input:-webkit-autofill:active {
+      -webkit-text-fill-color: white !important;
+      transition: background-color 50000s ease-in-out 0s !important;
+      caret-color: white !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+  }
+}
+
+.body--light {
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus, 
+  input:-webkit-autofill:active {
+      -webkit-text-fill-color: #000 !important;
+      transition: background-color 50000s ease-in-out 0s !important;
+      caret-color: black !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+  }
+}
