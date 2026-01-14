@@ -39,11 +39,18 @@
             <div 
                 v-if="currentLesson" 
                 class="absolute-top transparent-shield cursor-pointer" 
-                style="z-index: 20; height: calc(100% - 55px);"
+                style="z-index: 20; height: calc(100% - 60px);"
                 @click="togglePlay"
                 @contextmenu.prevent
             >
             </div>
+
+            <!-- EXTRA SHIELDS: Block External Links -->
+            <!-- Top Right: Blocks 'Share' and 'Watch Later' -->
+            <div class="absolute-top-right" style="width: 120px; height: 80px; z-index: 30; cursor: default;" @click.stop @contextmenu.prevent></div>
+            
+            <!-- Bottom Right: Blocks 'YouTube' Logo -->
+            <div class="absolute-bottom-right" style="width: 160px; height: 60px; z-index: 30; cursor: default;" @click.stop @contextmenu.prevent></div>
         </div>
 
         <div class="q-mt-md">
