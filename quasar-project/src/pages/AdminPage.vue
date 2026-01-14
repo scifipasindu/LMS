@@ -50,7 +50,7 @@
                         <q-tooltip>Approve User</q-tooltip>
                     </q-btn>
 
-                    <q-btn v-if="props.row.status === 'active' && currentUserEmail === MAIN_ADMIN_EMAIL" flat round dense icon="block" color="warning" @click="confirmBan(props.row)">
+                    <q-btn v-if="props.row.status === 'active' && (currentUserEmail === MAIN_ADMIN_EMAIL || isAdmin)" flat round dense icon="block" color="warning" @click="confirmBan(props.row)">
                         <q-tooltip>Ban/Suspend User</q-tooltip>
                     </q-btn>
 
@@ -62,9 +62,8 @@
                        <q-tooltip>Send Password Reset Email</q-tooltip>
                     </q-btn>
 
-                    <!-- Delete NEVER allowed for Main Admin (Self) -->
-                    <!-- Delete Button: STRICTLY MAIN ADMIN ONLY -->
-                    <q-btn v-if="currentUserEmail === MAIN_ADMIN_EMAIL" flat round dense icon="delete" color="negative" @click="confirmDelete(props.row)">
+                    <!-- Delete: ANY ADMIN (except self) -->
+                    <q-btn v-if="(currentUserEmail === MAIN_ADMIN_EMAIL || isAdmin) && currentUserEmail !== props.row.email" flat round dense icon="delete" color="negative" @click="confirmDelete(props.row)">
                        <q-tooltip>Delete Profile</q-tooltip>
                     </q-btn>
                 </div>
@@ -114,12 +113,7 @@
     </q-dialog>
 
   
-    <!-- OTP Verification Dialog -->
-    <VerifyOtpDialog 
-      v-model="showOtp" 
-      :action="otpAction" 
-      @verified="handleOtpVerified" 
-    />
+
     
     <!-- Security PIN Dialog (Kept for Edit Role if needed, but requirements imply OTP for role change. 
          However, 'When all administrators... add a course' is PIN. 
@@ -163,7 +157,6 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
-import VerifyOtpDialog from 'components/VerifyOtpDialog.vue'
 
 const $q = useQuasar()
 const route = useRoute()
@@ -278,21 +271,7 @@ const fetchUsers = async () => {
    loading.value = false
 }
 
-// OTP State
-const showOtp = ref(false)
-const otpAction = ref('')
-const pendingOtpCallback = ref(null)
 
-const triggerOtp = (action, callback) => {
-    otpAction.value = action
-    pendingOtpCallback.value = callback
-    showOtp.value = true
-}
-
-const handleOtpVerified = () => {
-    if (pendingOtpCallback.value) pendingOtpCallback.value()
-    pendingOtpCallback.value = null
-}
 
 // PIN VALIDATION LOGIC
 const pendingAction = ref(null)
@@ -322,8 +301,8 @@ const verifyPin = () => {
 
 // 1. DELETE ACTION
 const confirmDelete = (row) => {
-    // Requirement: OTP for removing user
-    triggerOtp('remove_user', () => {
+    // Requirement: PIN for removing user (replaced OTP)
+    confirmAction(() => {
         $q.dialog({
             title: 'Confirm Delete',
             message: 'Are you sure? This cannot be undone.',
@@ -336,8 +315,8 @@ const confirmDelete = (row) => {
 }
 
 const confirmBan = (row) => {
-    // Requirement: OTP for banning user
-    triggerOtp('ban_user', () => {
+    // Requirement: PIN for banning user (replaced OTP)
+    confirmAction(() => {
          $q.dialog({
             title: 'Confirm Ban',
             message: 'Are you sure you want to ban/suspend this user?',
@@ -464,8 +443,8 @@ const updateUser = async () => {
 }
 
 const deleteUser = async (id, skipConfirm = false) => {
-    if (currentUserEmail.value !== MAIN_ADMIN_EMAIL) {
-        $q.notify({ type: 'negative', message: 'Only Main Admin can delete users.' })
+    if (currentUserEmail.value !== MAIN_ADMIN_EMAIL && !isAdmin.value) {
+        $q.notify({ type: 'negative', message: 'Only Admins can delete users.' })
         return
     }
 
