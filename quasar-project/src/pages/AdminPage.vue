@@ -45,8 +45,8 @@
              <q-td :props="props">
                 <!-- Actions: Hide for Main Admin UNLESS valid Main Admin is logged in -->
                 <div v-if="props.row.email !== MAIN_ADMIN_EMAIL">
-                    <!-- Approve: MAIN ADMIN ONLY -->
-                    <q-btn v-if="props.row.status !== 'active' && currentUserEmail === MAIN_ADMIN_EMAIL" flat round dense icon="check_circle" color="positive" @click="approveUser(props.row)">
+                    <!-- Approve: ANY ADMIN -->
+                    <q-btn v-if="props.row.status !== 'active' && (currentUserEmail === MAIN_ADMIN_EMAIL || isAdmin)" flat round dense icon="check_circle" color="positive" @click="approveUser(props.row)">
                         <q-tooltip>Approve User</q-tooltip>
                     </q-btn>
 
@@ -404,8 +404,8 @@ const resetPassword = async (user) => {
 }
 
 const approveUser = async (user) => {
-    if (currentUserEmail.value !== MAIN_ADMIN_EMAIL) {
-        $q.notify({ type: 'negative', message: 'Only Main Admin can approve users.' })
+    if (currentUserEmail.value !== MAIN_ADMIN_EMAIL && !isAdmin.value) {
+        $q.notify({ type: 'negative', message: 'Only Admins can approve users.' })
         return
     }
 
