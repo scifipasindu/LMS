@@ -73,7 +73,7 @@
                 <q-separator :dark="$q.dark.isActive" />
                 
                 <q-card-actions align="right" class="q-pa-md">
-                   <q-btn flat color="secondary" icon="group_add" v-if="canDelete(cls) && cls.course_id" @click="openEnrollDialog(cls)" dense round>
+                   <q-btn flat color="secondary" icon="group_add" v-if="canDelete(cls)" @click="openEnrollDialog(cls)" dense round>
                        <q-tooltip>Add Student to this Course</q-tooltip>
                    </q-btn>
                    <q-btn flat color="negative" icon="delete" v-if="canDelete(cls)" @click="confirmDelete(cls)" dense round />
@@ -435,6 +435,10 @@ const studentToEnroll = ref(null)
 const enrolling = ref(false)
 
 const openEnrollDialog = (cls) => {
+    if (!cls.course_id) {
+        $q.notify({ type: 'warning', message: 'This class is not linked to a specific Course. You cannot enroll students directly.' })
+        return
+    }
     selectedClassForEnroll.value = cls
     studentToEnroll.value = null
     showEnrollDialog.value = true
