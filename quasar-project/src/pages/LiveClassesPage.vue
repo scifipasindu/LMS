@@ -283,7 +283,6 @@ const fetchClasses = async () => {
          .from('class_schedules')
          .select(`*, courses(title), profiles(full_name)`)
          .order('start_time', { ascending: true })
-         .gte('start_time', new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()) // Show classes from last 4 hours (active)
 
        // If Student, Get Enrolled Courses First
        if (userRole.value === 'student' && userId.value) {
