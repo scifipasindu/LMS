@@ -180,6 +180,10 @@
         </q-list>
       </div>
       
+      <div class="absolute-bottom q-pa-md text-center text-caption text-grey-6">
+         v0.0.2
+      </div>
+      
 
     </q-drawer>
 
