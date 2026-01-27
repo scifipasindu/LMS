@@ -73,6 +73,7 @@
                 <q-separator :dark="$q.dark.isActive" />
                 
                 <q-card-actions align="right" class="q-pa-md">
+                   <!-- Allow adding students even if course is not linked (logic handled in dialog) -->
                    <q-btn flat color="secondary" icon="group_add" v-if="canDelete(cls)" @click="openEnrollDialog(cls)" dense round>
                        <q-tooltip>Add Student to this Course</q-tooltip>
                    </q-btn>
