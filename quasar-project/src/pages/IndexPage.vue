@@ -349,6 +349,7 @@ onMounted(async () => {
 
 .text-gradient {
   background: linear-gradient(to right, $primary, $accent);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }

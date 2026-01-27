@@ -370,27 +370,13 @@
                 <!-- Add Student Form -->
                 <div class="row q-col-gutter-sm items-center q-mb-md">
                     <div class="col-grow">
-                         <q-select
-                            filled
+                    <div class="col-grow">
+                         <StudentSelector 
+                            v-model="selectedStudent" 
+                            label="Search Student to Enroll" 
                             :dark="$q.dark.isActive"
-                            v-model="selectedStudent"
-                            use-input
-                            input-debounce="300"
-                            label="Search Student by Name/Email"
-                            :options="studentOptions"
-                            @filter="filterStudents"
-                            option-label="label"
-                            option-value="id"
-                            behavior="menu"
-                        >
-                            <template v-slot:no-option>
-                              <q-item>
-                                <q-item-section class="text-grey">
-                                  No results
-                                </q-item-section>
-                              </q-item>
-                            </template>
-                        </q-select>
+                         />
+                    </div>
                     </div>
                     <div class="col-auto">
                         <q-btn color="positive" icon="person_add" label="Enroll" @click="enrollStudent" :disable="!selectedStudent" />
@@ -437,6 +423,7 @@ import { ref, onMounted } from 'vue'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
 import PinDialog from 'components/PinDialog.vue'
+import StudentSelector from 'components/StudentSelector.vue'
 
 const $q = useQuasar()
 const loading = ref(false)
@@ -902,7 +889,7 @@ const toggleAssignment = async (staff) => {
 
 // ENROLLMENT MANAGER LOGIC
 const showEnrollmentDialog = ref(false)
-const studentOptions = ref([])
+
 const enrolledStudents = ref([])
 const selectedStudent = ref(null)
 
@@ -926,29 +913,7 @@ const fetchEnrolledStudents = async (courseId) => {
     }))
 }
 
-const filterStudents = async (val, update) => {
-    update(async () => {
-        let query = supabase.from('profiles')
-            .select('id, full_name, email')
-            .eq('role', 'student') // Only show students
-            .limit(10)
 
-        if (val === '') {
-            query = query.order('created_at', { ascending: false }) // Default to recent
-        } else {
-            const needle = val.toLowerCase()
-            query = query.or(`full_name.ilike.%${needle}%,email.ilike.%${needle}%`)
-        }
-
-        const { data } = await query
-            
-        studentOptions.value = (data || []).map(s => ({
-            label: `${s.full_name} (${s.email})`,
-            id: s.id,
-            ...s
-        }))
-    })
-}
 
 const enrollStudent = async () => {
     if (!selectedStudent.value) return

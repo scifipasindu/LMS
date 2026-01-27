@@ -73,6 +73,9 @@
                 <q-separator :dark="$q.dark.isActive" />
                 
                 <q-card-actions align="right" class="q-pa-md">
+                   <q-btn flat color="secondary" icon="group_add" v-if="canDelete(cls) && cls.course_id" @click="openEnrollDialog(cls)" dense round>
+                       <q-tooltip>Add Student to this Course</q-tooltip>
+                   </q-btn>
                    <q-btn flat color="negative" icon="delete" v-if="canDelete(cls)" @click="confirmDelete(cls)" dense round />
                    <q-btn 
                      :color="isExampleLink(cls.link) ? 'grey' : 'primary'" 
@@ -184,6 +187,35 @@
        </q-card>
     </q-dialog>
 
+    <!-- ENROLL DIALOG -->
+    <q-dialog v-model="showEnrollDialog">
+        <q-card style="min-width: 500px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
+             <q-bar class="q-py-md" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-3'">
+                <div class="text-h6">Enroll Student to Course</div>
+                <q-space />
+                <q-btn dense flat icon="close" v-close-popup />
+             </q-bar>
+             
+             <q-card-section>
+                <div class="text-subtitle2 q-mb-md">
+                    Adding student to course: <b>{{ selectedClassForEnroll?.courses?.title || 'Unknown Course' }}</b>
+                </div>
+                <div class="row q-col-gutter-sm items-center q-mb-md">
+                    <div class="col-grow">
+                         <StudentSelector 
+                            v-model="studentToEnroll" 
+                            label="Select Student" 
+                            :dark="$q.dark.isActive"
+                         />
+                    </div>
+                    <div class="col-auto">
+                        <q-btn color="positive" icon="person_add" label="Add Access" @click="enrollStudentToCourse" :disable="!studentToEnroll" :loading="enrolling" />
+                    </div>
+                </div>
+             </q-card-section>
+        </q-card>
+    </q-dialog>
+
   </q-page>
 </template>
 
@@ -191,6 +223,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { supabase } from 'boot/supabase'
 import { useQuasar, date } from 'quasar'
+import StudentSelector from 'components/StudentSelector.vue'
 
 const $q = useQuasar()
 const classes = ref([])
@@ -394,6 +427,46 @@ const getPlatformImage = (platform) => {
 
 const isExampleLink = (link) => {
     return !link || link === '#' || link.includes('example.com')
+}
+
+// Enrollment Logic
+const showEnrollDialog = ref(false)
+const selectedClassForEnroll = ref(null)
+const studentToEnroll = ref(null)
+const enrolling = ref(false)
+
+const openEnrollDialog = (cls) => {
+    selectedClassForEnroll.value = cls
+    studentToEnroll.value = null
+    showEnrollDialog.value = true
+}
+
+const enrollStudentToCourse = async () => {
+    if (!studentToEnroll.value || !selectedClassForEnroll.value?.course_id) return
+    
+    enrolling.value = true
+    try {
+        const { error } = await supabase.from('enrollments').insert({
+            course_id: selectedClassForEnroll.value.course_id,
+            user_id: studentToEnroll.value.id
+        })
+        
+        if (error) {
+            if (error.code === '23505') {
+                 $q.notify({ type: 'warning', message: 'Student already enrolled' })
+            } else {
+                 throw error
+            }
+        } else {
+            $q.notify({ type: 'positive', message: 'Student added to course!' })
+            showEnrollDialog.value = false
+        }
+    } catch (err) {
+        console.error(err)
+        $q.notify({ type: 'negative', message: 'Enrollment failed' })
+    } finally {
+        enrolling.value = false
+    }
 }
 </script>
 

@@ -107,6 +107,17 @@
                             class="input-dynamic"
                         />
                      </div>
+                     <div class="col-12 col-md-6">
+                        <q-select
+                            filled
+                            :dark="$q.dark.isActive"
+                            v-model="profile.stream"
+                            :options="['Maths','Bio','Commerce','Arts','Tech','Other']"
+                            label="Stream"
+                            hint="Select your stream"
+                            class="input-dynamic"
+                        />
+                     </div>
                   </div>
 
                   <q-separator :dark="$q.dark.isActive" class="q-my-lg" />
@@ -332,7 +343,8 @@ const profile = ref({
     phone: '',
     bio: '',
     security_pin: '',
-    grade: ''
+    grade: '',
+    stream: ''
 })
 
 const initialPin = ref('') // Track initial PIN state
@@ -651,7 +663,8 @@ const updateProfile = async () => {
                 bio: profile.value.bio,
                 security_pin: profile.value.security_pin,
                 role: profile.value.role,
-                grade: profile.value.grade
+                grade: profile.value.grade,
+                stream: profile.value.stream
             })
             .eq('id', profile.value.id)
 
