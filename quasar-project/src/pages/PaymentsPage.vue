@@ -64,10 +64,8 @@ const columns = [
 onMounted(async () => {
     await fetchSettings()
     // Mock Data for now
-    payments.value = [
-        { id: 1, date: '2023-10-01', description: 'October Tuition Fee', amount: '2500.00', status: 'Paid' },
-        { id: 2, date: '2023-11-01', description: 'November Tuition Fee', amount: '2500.00', status: 'Pending' }
-    ]
+    // Mock Data removed
+    payments.value = []
 })
 
 const fetchSettings = async () => {

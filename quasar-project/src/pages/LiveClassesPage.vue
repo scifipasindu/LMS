@@ -156,6 +156,16 @@
                       :rules="[val => !!val || 'Start time is required']"
                    />
                 </div>
+                <div class="col-12 col-md-6">
+                   <q-input 
+                      v-model="form.expires_at" 
+                      label="Auto Remove At (Optional)" 
+                      filled 
+                      :dark="$q.dark.isActive"
+                      type="datetime-local"
+                      hint="Leave empty to keep indefinitely"
+                   />
+                </div>
              </div>
 
              <q-input 
@@ -284,6 +294,7 @@ const fetchClasses = async () => {
          .from('class_schedules')
          .select(`*, courses(title), profiles(full_name)`)
          .order('start_time', { ascending: true })
+         .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`) // Show if NULL (forever) OR Future Expiry
 
        // If Student, Get Enrolled Courses First
        if (userRole.value === 'student' && userId.value) {
@@ -329,6 +340,7 @@ const openScheduleDialog = () => {
        link: '',
        platform: 'zoom',
        start_time: '',
+       expires_at: '',
        course_id: null
     }
     dialog.value = true
@@ -371,6 +383,7 @@ const saveClass = async () => {
             link: form.value.link,
             platform: form.value.platform,
             start_time: new Date(form.value.start_time).toISOString(),
+            expires_at: form.value.expires_at ? new Date(form.value.expires_at).toISOString() : null,
             course_id: form.value.course_id,
             created_by: userId.value,
             thumbnail_url: thumbnailUrl
