@@ -71,7 +71,7 @@
                    label="Bio / About Me" 
                    type="textarea"
                    rows="3"
-                   class="input-dynamic"
+                   class="input-dynamic q-mb-md"
                  />
 
                  <div class="row q-col-gutter-md">

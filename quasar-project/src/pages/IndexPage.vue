@@ -305,6 +305,8 @@ onMounted(async () => {
 </script>
 
 <style lang="scss">
+@use "sass:color";
+
 .text-left-md {
   @media (min-width: $breakpoint-md-min) {
     text-align: left;
@@ -318,11 +320,11 @@ onMounted(async () => {
 }
 
 .bg-dark-light {
-  background-color: lighten($dark, 5%);
+  background-color: color.adjust($dark, $lightness: 5%);
 }
 
 .bg-dark-lighter {
-  background-color: lighten($dark, 8%);
+  background-color: color.adjust($dark, $lightness: 8%);
 }
 
 .bg-glass {

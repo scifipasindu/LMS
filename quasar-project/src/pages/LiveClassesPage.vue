@@ -250,7 +250,29 @@ const fetchClasses = async () => {
          .from('class_schedules')
          .select(`*, courses(title), profiles(full_name)`)
          .order('start_time', { ascending: true })
-         .gte('start_time', new Date().toISOString()) // Only future classes? Or maybe recent ones too.
+         .gte('start_time', new Date().toISOString()) // Only future classes
+
+       // If Student, Get Enrolled Courses First
+       if (userRole.value === 'student' && userId.value) {
+           const { data: enrollments } = await supabase
+              .from('enrollments')
+              .select('course_id')
+              .eq('user_id', userId.value)
+           
+           const enrolledIds = (enrollments || []).map(e => e.course_id)
+           
+           // Include classes with NO course (General) OR Enrolled Course
+           // Supabase doesn't support complex OR with different columns easily in one go without raw filter
+           // But 'course_id.in.(...)' is simple. 
+           // To allow nulls, we might need a workaround or just fetch all and filter in JS if the list is small. 
+           // Or use .or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null`)
+           
+           if (enrolledIds.length > 0) {
+               query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null`)
+           } else {
+               query = query.is('course_id', null)
+           }
+       }
        
        if (filterCourse.value) {
            query = query.eq('course_id', filterCourse.value)
