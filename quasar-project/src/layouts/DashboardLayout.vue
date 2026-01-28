@@ -181,7 +181,7 @@
       </div>
       
       <div class="absolute-bottom q-pa-md text-center text-caption text-negative text-weight-bold">
-         v0.0.5 (Reverted Config)
+         v0.0.6 (No vercel.json + dist)
       </div>
       
 
