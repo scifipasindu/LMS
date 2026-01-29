@@ -1,6 +1,6 @@
 {
   "name": "classmaster",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "A Quasar Project",
   "productName": "OnlineClass.edu.lk",
   "author": "pasindulakshan",
@@ -38,7 +38,6 @@
   },
   "engines": {
     "node": "^28 || ^26 || ^24 || ^22 || ^20",
-    "npm": ">= 6.13.4",
-    "yarn": ">= 1.21.1"
+    "npm": ">= 6.13.4"
   }
 }
