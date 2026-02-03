@@ -2,6 +2,7 @@
   <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark-page text-white' : 'bg-grey-1 text-dark'">
     <q-header :class="$q.dark.isActive ? 'bg-dark-glass text-white' : 'bg-white text-dark'" class="backdrop-blur q-py-xs" :style="$q.dark.isActive ? 'border-bottom: 1px solid rgba(255,255,255,0.05)' : 'border-bottom: 1px solid rgba(0,0,0,0.05)'">
       <q-toolbar>
+         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" class="q-mr-sm" />
          <q-toolbar-title class="text-weight-bold">
             <span class="text-accent">Admin</span>Console
          </q-toolbar-title>
@@ -140,6 +141,10 @@ import { useQuasar } from 'quasar'
 const $q = useQuasar()
 const router = useRouter()
 const leftDrawerOpen = ref(true)
+
+function toggleLeftDrawer () {
+  leftDrawerOpen.value = !leftDrawerOpen.value
+}
 const isAdmin = ref(false)
 const isStaff = ref(false)
 

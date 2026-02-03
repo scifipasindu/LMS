@@ -45,7 +45,7 @@
 
     <!-- ADD DIALOG -->
     <q-dialog v-model="showDialog" persistent>
-        <q-card style="min-width: 500px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
+        <q-card style="width: 90vw; max-width: 600px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
             <q-bar class="q-py-md" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-3'">
                 <div class="text-h6">New Announcement</div>
                 <q-space />

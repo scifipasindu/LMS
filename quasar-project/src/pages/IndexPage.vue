@@ -3,22 +3,19 @@
     
     <!-- Hero Section -->
     <section id="home" class="hero-section relative-position">
-      <div class="absolute-full overflow-hidden">
-        <div class="glow-effect q-ma-xl"></div>
-      </div>
       
       <div class="container q-pa-md relative-position z-10 text-center">
-        <div class="row items-center justify-center q-col-gutter-lg reverse-wrap-mobile">
+        <div class="row items-center justify-center q-col-gutter-lg">
           <div class="col-12 col-md-7" :class="$q.screen.gt.sm ? 'text-left' : 'text-center'">
-            <q-badge color="secondary" label="New Enrollment Open" class="q-py-xs q-px-sm q-mb-md" rounded />
-            <h1 class="text-h2 text-weight-bolder leading-tight q-mb-md">
+            <q-badge color="secondary" label="New Enrollment Open" class="q-py-xs q-px-sm q-mb-md animate-fade-in" rounded />
+            <h1 class="text-h2 text-weight-bolder leading-tight q-mb-md animate-fade-in-up delay-100">
               {{ config.home.slider.subtitle }} <br>
               <span class="text-gradient">{{ config.home.slider.title }}</span>
             </h1>
-            <p :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'" class="text-h6 q-mb-xl" :style="$q.screen.gt.sm ? 'margin-right: auto' : 'margin-inline: auto'">
+            <p :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'" class="text-h6 q-mb-xl animate-fade-in-up delay-200" :style="$q.screen.gt.sm ? 'margin-right: auto' : 'margin-inline: auto'">
               {{ config.home.slider.subText }}
             </p>
-            <div class="row q-gutter-md" :class="$q.screen.gt.sm ? 'justify-start' : 'justify-center'">
+            <div class="row q-gutter-md animate-fade-in-up delay-300" :class="$q.screen.gt.sm ? 'justify-start' : 'justify-center'">
               <q-btn 
                 size="lg" 
                 rounded 
@@ -45,7 +42,7 @@
              <div class="hero-card relative-position">
                    <q-img 
                      :src="config.home.slider.image"
-                     class="rounded-borders"
+                     class="rounded-borders animate-fade-in-up"
                      style="border-radius: 20px; height: 500px; object-fit: cover;"
                   />
              </div>
@@ -56,32 +53,20 @@
 
     <!-- Stats Bar -->
     <!-- Dynamic Guides Section -->
-    <section v-if="config.home.guides && config.home.guides.length > 0 && config.home.guides[0].title" class="q-py-xl border-y-dim" :class="$q.dark.isActive ? 'bg-dark-light' : 'bg-grey-2'">
-      <div class="container">
-        <div class="row q-col-gutter-lg justify-center">
-          <div v-for="(guide, index) in config.home.guides" :key="index" class="col-12 col-md-3">
-             <q-card class="h-full text-center q-pa-md transition-hover row flex-center column" :class="$q.dark.isActive ? 'bg-glass-card no-shadow' : 'bg-white shadow-2'">
-                <div class="text-h6 text-primary q-mb-sm">{{ guide.title }}</div>
-                <div class="text-caption q-mb-md" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">{{ guide.subText }}</div>
-                <q-btn v-if="guide.link" outline rounded size="sm" :color="$q.dark.isActive ? 'white' : 'primary'" label="View" :href="guide.link" />
-             </q-card>
-          </div>
-        </div>
-      </div>
-    </section>
+    <!-- Stats Bar (Removed) -->
 
     <!-- Features Section -->
     <section id="features" class="q-py-xl relative-position">
        <div class="container q-pa-md">
-          <div class="text-center q-mb-xl">
+          <div class="text-center q-mb-xl reveal">
              <h2 class="text-h3 text-weight-bold q-mb-sm">Powerful <span class="text-secondary">Features</span></h2>
              <p :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'" class="text-subtitle1">Everything you need to manage your institute efficiently.</p>
           </div>
           
           <div class="row q-col-gutter-lg">
              <!-- Feature 1 -->
-             <div class="col-12 col-md-4">
-                <q-card class="h-full transition-hover" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
+             <div class="col-12 col-md-4 reveal delay-100">
+                <q-card class="h-full transition-hover hover-scale" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
                    <q-card-section class="q-pa-lg">
                       <div class="bg-primary-soft q-pa-md rounded-borders inline-block q-mb-md">
                          <q-icon name="manage_accounts" size="32px" :color="$q.dark.isActive ? 'white' : 'primary'"/>
@@ -93,8 +78,8 @@
              </div>
              
               <!-- Feature 2 -->
-             <div class="col-12 col-md-4">
-                <q-card class="h-full transition-hover" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
+             <div class="col-12 col-md-4 reveal delay-100">
+                <q-card class="h-full transition-hover hover-scale" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
                    <q-card-section class="q-pa-lg">
                       <div class="bg-secondary-soft q-pa-md rounded-borders inline-block q-mb-md">
                          <q-icon name="qr_code_scanner" size="32px" :color="$q.dark.isActive ? 'white' : 'secondary'"/>
@@ -106,8 +91,8 @@
              </div>
 
               <!-- Feature 3 -->
-             <div class="col-12 col-md-4">
-                <q-card class="h-full transition-hover" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
+             <div class="col-12 col-md-4 reveal delay-200">
+                <q-card class="h-full transition-hover hover-scale" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
                    <q-card-section class="q-pa-lg">
                       <div class="bg-accent-soft q-pa-md rounded-borders inline-block q-mb-md">
                          <q-icon name="payments" size="32px" :color="$q.dark.isActive ? 'white' : 'accent'"/>
@@ -119,8 +104,8 @@
              </div>
              
               <!-- Feature 4 -->
-             <div class="col-12 col-md-4">
-                 <q-card class="h-full transition-hover" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
+             <div class="col-12 col-md-4 reveal delay-200">
+                 <q-card class="h-full transition-hover hover-scale" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
                    <q-card-section class="q-pa-lg">
                       <div class="bg-warning-soft q-pa-md rounded-borders inline-block q-mb-md">
                          <q-icon name="quiz" size="32px" :color="$q.dark.isActive ? 'white' : 'warning'"/>
@@ -132,8 +117,8 @@
              </div>
              
               <!-- Feature 5 -->
-             <div class="col-12 col-md-4">
-                <q-card class="h-full transition-hover" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
+             <div class="col-12 col-md-4 reveal delay-300">
+                <q-card class="h-full transition-hover hover-scale" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
                    <q-card-section class="q-pa-lg">
                       <div class="bg-info-soft q-pa-md rounded-borders inline-block q-mb-md">
                          <q-icon name="dashboard" size="32px" :color="$q.dark.isActive ? 'white' : 'info'"/>
@@ -145,8 +130,8 @@
              </div>
 
              <!-- Feature 6 -->
-             <div class="col-12 col-md-4">
-                <q-card class="h-full transition-hover" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
+             <div class="col-12 col-md-4 reveal delay-300">
+                <q-card class="h-full transition-hover hover-scale" :class="$q.dark.isActive ? 'bg-glass-card text-white no-shadow' : 'bg-white text-dark shadow-2'">
                    <q-card-section class="q-pa-lg">
                       <div class="bg-positive-soft q-pa-md rounded-borders inline-block q-mb-md">
                          <q-icon name="live_tv" size="32px" :color="$q.dark.isActive ? 'white' : 'positive'"/>
@@ -164,7 +149,7 @@
     <section id="about" class="q-py-xl" :class="$q.dark.isActive ? 'bg-dark-lighter' : 'bg-grey-1'">
       <div class="container q-pa-md">
          <div class="row items-center q-col-gutter-xl">
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-6 reveal-left">
                <div class="relative-position">
                    <q-img 
                      :src="config.home.about.image"
@@ -175,13 +160,13 @@
                          {{ config.home.about.title }}
                      </div>
                   </q-img>
-                  <div class="absolute-bottom-right q-mb-n-md q-mr-n-md bg-accent q-pa-lg rounded-borders shadow-10">
-                     <div class="text-h4 text-weight-bold text-white">10+</div>
+                  <div class="absolute-bottom-right q-mb-n-md q-mr-n-md bg-accent q-pa-lg rounded-borders shadow-10 animate-float">
+                     <div class="text-h4 text-weight-bold text-white">{{ yearsCount }}+</div>
                      <div class="text-subtitle2 text-white">Years Experience</div>
                   </div>
                </div>
             </div>
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-6 reveal-right">
                <div class="text-primary text-subtitle1 text-weight-bold q-mb-sm">ABOUT US</div>
                <h2 class="text-h3 text-weight-bold q-mb-md" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ config.home.about.title }}</h2>
                <div :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'" class="text-body1 q-mb-lg" v-html="config.home.about.description"></div>
@@ -217,7 +202,7 @@
     </section>
 
     <!-- Contact Section -->
-    <section id="contact" class="q-py-xl">
+    <section id="contact" class="q-py-xl reveal">
        <div class="container q-pa-md">
           <div class="bg-primary-gradient rounded-xl overflow-hidden shadow-20">
              <div class="row">
@@ -265,6 +250,34 @@ import { useQuasar } from 'quasar'
 
 const $q = useQuasar()
 
+// Scroll Animation Observer
+let observer = null
+const onIntersect = (entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('animate-active')
+      observer.unobserve(entry.target) // Only animate once
+    }
+  })
+}
+
+// Counter Logic
+const yearsCount = ref(0)
+const animateCounter = () => {
+   const target = 10
+   const duration = 2000
+   const step = timestamp => {
+      if (!start) start = timestamp
+      const progress = Math.min((timestamp - start) / duration, 1)
+      yearsCount.value = Math.floor(progress * target)
+      if (progress < 1) {
+         window.requestAnimationFrame(step)
+      }
+   }
+   let start = null
+   window.requestAnimationFrame(step)
+}
+
 const name = ref('')
 const email = ref('')
 const message = ref('')
@@ -292,6 +305,7 @@ const config = reactive({
 })
 
 onMounted(async () => {
+  // Config Fetch
   const { data } = await supabase
     .from('system_settings')
     .select('value')
@@ -301,6 +315,13 @@ onMounted(async () => {
   if (data?.value?.home) {
       Object.assign(config.home, data.value.home)
   }
+
+  // Initialize Observer
+  observer = new IntersectionObserver(onIntersect, { threshold: 0.15 })
+  document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => observer.observe(el))
+
+  // Trigger Counter Animation (Simple delay for now, or could use observer)
+  setTimeout(animateCounter, 1000)
 })
 </script>
 
@@ -315,8 +336,13 @@ onMounted(async () => {
 
 .hero-section {
   min-height: auto;
-  padding-top: 160px; // Increased top padding to sit below navbar
+  padding-top: 160px;
   padding-bottom: 100px;
+  
+  @media (max-width: $breakpoint-sm-max) {
+      padding-top: 60px;
+      padding-bottom: 40px;
+  }
 }
 
 .bg-dark-light {
@@ -422,5 +448,96 @@ onMounted(async () => {
 
 .rounded-xl {
   border-radius: 24px;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 1s ease-out forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 1.2s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+.animate-pop-in {
+  animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+@keyframes popIn {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-500 { animation-delay: 500ms; }
+
+/* Global Smooth Scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Scroll Animation Classes */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s ease-out;
+}
+
+.reveal.animate-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-30px);
+  transition: all 0.8s ease-out;
+}
+
+.reveal-left.animate-active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.reveal-right {
+  opacity: 0;
+  transform: translateX(30px);
+  transition: all 0.8s ease-out;
+}
+
+.reveal-right.animate-active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Enhanced Hover Effects */
+.hover-scale {
+  transition: transform 0.3s ease;
+}
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba($primary, 0.4);
 }
 </style>

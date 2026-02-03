@@ -52,7 +52,7 @@
 
     <!-- ADD/EDIT COURSE DIALOG -->
     <q-dialog v-model="showCourseDialog" persistent>
-        <q-card style="min-width: 600px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
+        <q-card style="width: 90vw; max-width: 600px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
             <q-bar class="q-py-md" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-3'">
                 <div class="text-h6">{{ isEditing ? 'Edit Course' : 'Create New Course' }}</div>
                 <q-space />
@@ -309,7 +309,7 @@
 
     <!-- ADD VIDEO DIALOG -->
     <q-dialog v-model="showAddVideo" persistent>
-        <q-card style="min-width: 400px; border: 1px solid #333" :class="$q.dark.isActive ? 'bg-dark-card text-white' : 'bg-white text-dark'">
+        <q-card style="width: 90vw; max-width: 500px; border: 1px solid #333" :class="$q.dark.isActive ? 'bg-dark-card text-white' : 'bg-white text-dark'">
             <q-card-section>
                 <div class="text-h6">Add YouTube Video</div>
             </q-card-section>
@@ -332,7 +332,7 @@
 
     <!-- ASSIGN STAFF DIALOG -->
     <q-dialog v-model="showStaffDialog">
-        <q-card style="min-width: 400px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
+        <q-card style="width: 90vw; max-width: 500px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
              <q-bar class="q-py-md" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-3'">
                 <div class="text-h6">Assign Staff</div>
                 <q-space />
@@ -359,7 +359,7 @@
 
     <!-- ENROLLMENT MANAGER DIALOG -->
     <q-dialog v-model="showEnrollmentDialog">
-        <q-card style="min-width: 500px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
+        <q-card style="width: 90vw; max-width: 600px" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-white text-dark'">
              <q-bar class="q-py-md" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-3'">
                 <div class="text-h6">Enroll Students: {{ selectedCourse?.title }}</div>
                 <q-space />

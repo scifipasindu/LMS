@@ -28,7 +28,42 @@
 
 
         <q-btn flat round dense icon="notifications_none" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'" class="q-mr-sm">
-           <q-badge color="accent" floating rounded dot />
+           <q-badge v-if="hasUnread" color="accent" floating rounded dot />
+           <q-menu :dark="$q.dark.isActive" :class="$q.dark.isActive ? 'bg-dark-glass backdrop-blur' : 'bg-white backdrop-blur'" style="width: 350px; max-width: 90vw;">
+              <div class="row no-wrap items-center q-pa-sm bg-transparent">
+                  <div class="text-h6 q-mb-none text-weight-bold q-pa-sm">Notifications</div>
+                  <q-space />
+                  <q-btn flat round dense icon="done_all" color="primary" size="sm" @click="notifications.forEach(n => n.read = true)">
+                      <q-tooltip>Mark all as read</q-tooltip>
+                  </q-btn>
+              </div>
+              <q-separator :dark="$q.dark.isActive" />
+              <q-list class="q-py-none">
+                  <q-item 
+                    v-for="note in notifications" 
+                    :key="note.id" 
+                    clickable 
+                    v-ripple
+                    :class="{'bg-primary-soft-dm': !note.read && $q.dark.isActive, 'bg-blue-1': !note.read && !$q.dark.isActive}"
+                    @click="markAsRead(note.id)"
+                  >
+                      <q-item-section avatar>
+                          <q-avatar icon="notifications" :color="note.read ? 'grey-8' : 'primary'" text-color="white" size="md" font-size="20px" />
+                      </q-item-section>
+                      <q-item-section>
+                          <q-item-label class="text-weight-bold" :class="{'text-primary': !note.read}">{{ note.title }}</q-item-label>
+                          <q-item-label caption class="q-text-truncate-2 lines-2">{{ note.message }}</q-item-label>
+                          <q-item-label caption class="text-xs text-grey-6 q-mt-xs">{{ new Date(note.time).toLocaleDateString() }}</q-item-label>
+                      </q-item-section>
+                      <q-item-section side v-if="!note.read">
+                          <q-badge color="accent" rounded dot />
+                      </q-item-section>
+                  </q-item>
+                  <q-item v-if="notifications.length === 0" class="text-center q-pa-md">
+                      <q-item-section class="text-grey">No notifications</q-item-section>
+                  </q-item>
+              </q-list>
+           </q-menu>
         </q-btn>
         
         <q-btn flat round dense no-caps class="q-ml-sm">
@@ -194,7 +229,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue' // removed computed
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from 'boot/supabase'
 import { useQuasar } from 'quasar'
@@ -281,6 +316,18 @@ const handleLogout = async () => {
   $q.notify({ type: 'info', message: 'Logged out successfully' })
   router.push('/login')
 }
+
+// Notifications Logic
+const notifications = ref([
+    { id: 1, title: 'Welcome to OnlineClass!', message: 'Get started by exploring your courses.', time: new Date(), read: false },
+    { id: 2, title: 'System Update', message: 'New features have been added to the dashboard.', time: new Date(Date.now() - 86400000), read: true }
+])
+const hasUnread = computed(() => notifications.value.some(n => !n.read))
+
+const markAsRead = (id) => {
+    const n = notifications.value.find(x => x.id === id)
+    if(n) n.read = true
+}
 </script>
 
 <style scoped lang="scss">
@@ -362,5 +409,9 @@ body.body--light .glass-card-mini {
 
 body.body--light .glass-card-mini .text-subtitle2 {
     color: #333 !important;
+}
+
+.bg-primary-soft-dm {
+  background: rgba($primary, 0.2) !important;
 }
 </style>
